@@ -101,7 +101,7 @@ td{padding:8px;border-bottom:1px solid #EAF1F7;vertical-align:middle}
 <div class="screen active" id="s-home">
   <div class="home-logo">
     <img src="https://kannikarthaicharoen-stack.github.io/nw-ctms/logo.png" alt="NatureWorks">
-    <span class="vbadge" id="ver-badge">v1.0</span>
+    <span class="vbadge" id="ver-badge">v1.1</span>
   </div>
   <div class="home-title">Gate Pass Control</div>
   <div class="home-sub">ระบบควบคุมการผ่านเข้า–ออก ป้อมรักษาความปลอดภัย · NBC Plant</div>
@@ -141,22 +141,30 @@ td{padding:8px;border-bottom:1px solid #EAF1F7;vertical-align:middle}
             <div class="fg"><label>นามสกุล / Last Name <span class="req">*</span></label><input id="r-ln"></div>
           </div>
           <div class="fg" id="fg-co"><label>บริษัท / Company <span class="req">*</span></label><input id="r-co"></div>
-          <div class="fg" id="fg-dept" style="display:none"><label>แผนก / Department <span class="req">*</span></label><input id="r-dept"></div>
+          <div class="fg" id="fg-dept" style="display:none"><label>แผนก / Department <span class="req">*</span></label><select id="r-dept"></select></div>
           <div class="grid2">
             <div class="fg"><label>เลขบัตรประชาชน / ID No. <span class="req">*</span></label><input id="r-idno" maxlength="13" inputmode="numeric"></div>
             <div class="fg"><label>เบอร์โทร / Tel <span class="req">*</span></label><input id="r-tel" inputmode="tel"></div>
           </div>
-          <div class="fg" id="fg-contact"><label>ชื่อพนักงาน NatureWorks ที่ต้องการติดต่อ / Person to Contact <span class="req">*</span></label><input id="r-contact"></div>
-          <div class="fg" id="fg-purpose"><label>วัตถุประสงค์ / Purpose <span class="req">*</span></label><input id="r-purpose"></div>
-          <div class="fg" id="fg-reason" style="display:none"><label>เหตุผลที่ขอบัตรชั่วคราว / Reason for Temporary Pass <span class="req">*</span></label><input id="r-reason" placeholder="เช่น รอออกบัตรพนักงาน"></div>
+          <div class="fg" id="fg-contact"><label>ชื่อพนักงาน NatureWorks ที่ต้องการติดต่อ / Person to Contact <span class="req">*</span></label><input id="r-contact" list="contacts-dl" oninput="contactPick()" onchange="contactPick()" placeholder="พิมพ์ชื่อ — ระบบจะแนะนำรายชื่อให้"><datalist id="contacts-dl"></datalist></div>
+          <div class="fg" id="fg-cdept"><label>แผนกของพนักงานที่ต้องการติดต่อ / Department <span class="req">*</span></label><select id="r-cdept"></select></div>
+          <div class="fg" id="fg-purpose"><label>วัตถุประสงค์ / Purpose <span class="req">*</span></label><select id="r-purpose-sel" onchange="refreshOthers()"></select></div>
+          <div class="fg" id="fg-purpose-other" style="display:none"><label>ระบุวัตถุประสงค์ / Please specify <span class="req">*</span></label><input id="r-purpose-other"></div>
+          <div class="fg" id="fg-reason" style="display:none"><label>เหตุผลที่ขอบัตรชั่วคราว / Reason for Temporary Pass <span class="req">*</span></label><select id="r-reason" onchange="refreshOthers()"></select></div>
+          <div class="fg" id="fg-reason-other" style="display:none"><label>ระบุเหตุผล / Please specify <span class="req">*</span></label><input id="r-reason-other"></div>
           <div class="grid2">
             <div class="fg"><label>ทะเบียนรถ / Vehicle Plate <span id="plate-req" style="display:none" class="req">*</span></label><input id="r-plate" placeholder="เว้นว่างได้หากไม่มีรถ"></div>
             <div class="fg" id="fg-cargo" style="display:none"><label>ประเภทสินค้าที่นำส่ง / Cargo Type <span class="req">*</span></label>
-              <select id="r-cargo"><option value="">— เลือก —</option><option>สารเคมี / Chemicals</option><option>บรรจุภัณฑ์ / Packaging</option><option>เม็ดพลาสติก / Plastic Resin</option><option>วัตถุดิบ / Raw Material</option><option>อื่นๆ / Other</option></select></div>
+              <select id="r-cargo" onchange="refreshOthers()"></select></div>
+            <div class="fg" id="fg-cargo-other" style="display:none"><label>ระบุสิ่งที่นำมาส่ง / Please specify <span class="req">*</span></label><input id="r-cargo-other"></div>
           </div>
           <div class="fg"><label>ถ่ายรูปผู้ลงทะเบียน / Photo <span class="req">*</span></label>
-            <input type="file" id="r-photo" accept="image/*" capture="user">
-            <div class="hint">ถ่ายหน้าตรง เห็นใบหน้าชัดเจน</div></div>
+            <div class="rowflex">
+              <button type="button" class="btn btn-navy" onclick="openCamera()"><i class="ti ti-camera"></i> เปิดกล้องถ่ายรูป</button>
+              <img id="r-photo-prev" style="display:none;width:64px;height:64px;border-radius:8px;object-fit:cover;border:2px solid var(--teal)">
+              <span id="r-photo-ok" style="display:none;color:var(--green);font-weight:700;font-size:12px">✓ ถ่ายแล้ว — ถ่ายใหม่ได้</span>
+            </div>
+            <div class="hint">ต้องถ่ายรูป ณ ปัจจุบันเท่านั้นเพื่อยืนยันตัวตน — ไม่สามารถเลือกรูปจากเครื่องได้</div></div>
           <div class="alert al-teal"><i class="ti ti-info-circle"></i><span>หลังส่งข้อมูลแล้ว กรุณาแจ้งเจ้าหน้าที่ รปภ. ที่ป้อม เพื่อตรวจสอบและออกบัตรผ่านค่ะ<br>After submitting, please contact the security guard for verification and pass issuance.</span></div>
           <button class="btn btn-teal btn-big" id="r-submit" onclick="submitReg()"><i class="ti ti-send"></i> ส่งข้อมูลลงทะเบียน / Submit</button>
         </div>
@@ -197,10 +205,15 @@ td{padding:8px;border-bottom:1px solid #EAF1F7;vertical-align:middle}
         </div>
         <div id="qr-reader"></div>
         <div class="divh"></div>
-        <label>หรือพิมพ์ Card ID / เลข VP ด้วยตนเอง</label>
+        <label><i class="ti ti-scan"></i> เครื่องสแกน USB — ยิงที่ช่องนี้ (อ่านรหัสเต็มและค้นหาให้อัตโนมัติ)</label>
+        <input id="manual-code" placeholder="เคอร์เซอร์รออยู่ที่นี่ — ยิงสแกนเนอร์ได้เลย..." onkeydown="if(event.key==='Enter')manualLookup()" style="margin-bottom:12px">
+        <label>หรือกรอกเลข 4 ตัวท้ายของบัตร</label>
         <div class="rowflex">
-          <input id="manual-code" placeholder="NBC-SB-2026-0001 หรือ VP-2569-0001" style="flex:1;min-width:200px" onkeydown="if(event.key==='Enter')manualLookup()">
-          <button class="btn btn-navy" onclick="manualLookup()"><i class="ti ti-search"></i> ค้นหา</button>
+          <select id="qs-type" style="width:auto" onchange="qsYear()"><option value="NBC-SB">NBC-SB (Short Brief)</option><option value="NBC-FC">NBC-FC (Full Course)</option><option value="VP">VP (ใบผ่าน)</option></select>
+          <select id="qs-year" style="width:auto"></select>
+          <span style="font-weight:700;color:var(--grey)">—</span>
+          <input id="qs-num" maxlength="4" inputmode="numeric" placeholder="เลข 4 ตัว" style="width:110px" onkeydown="if(event.key==='Enter')qsLookup()">
+          <button class="btn btn-navy" onclick="qsLookup()"><i class="ti ti-search"></i> ค้นหา</button>
         </div>
       </div>
       <div id="scan-result"></div>
@@ -217,7 +230,15 @@ td{padding:8px;border-bottom:1px solid #EAF1F7;vertical-align:middle}
       <div class="card">
         <b style="font-size:14px"><i class="ti ti-nfc"></i> แตะบัตร RFID ที่รับคืน หรือค้นหา</b>
         <div class="hint" style="margin-bottom:8px">เคอร์เซอร์อยู่ในช่องนี้เสมอ — แตะบัตรกับเครื่องอ่าน ระบบจะค้นหา record ให้ทันที</div>
-        <input id="co-rfid" placeholder="แตะบัตร RFID... / หรือพิมพ์ชื่อ, VP, ทะเบียนรถ แล้วกด Enter" onkeydown="if(event.key==='Enter')coSearch()">
+        <input id="co-rfid" placeholder="แตะบัตร RFID... / พิมพ์ชื่อ, ทะเบียนรถ หรือเลขบัตรประชาชน 13 หลัก (กรณีบัตรหาย) แล้วกด Enter" onkeydown="if(event.key==='Enter')coSearch()" style="margin-bottom:12px">
+        <label>หรือกรอกเลข 4 ตัวท้ายของบัตร</label>
+        <div class="rowflex">
+          <select id="cq-type" style="width:auto" onchange="cqYear()"><option value="NBC-SB">NBC-SB (Short Brief)</option><option value="NBC-FC">NBC-FC (Full Course)</option><option value="VP">VP (ใบผ่าน)</option></select>
+          <select id="cq-year" style="width:auto"></select>
+          <span style="font-weight:700;color:var(--grey)">—</span>
+          <input id="cq-num" maxlength="4" inputmode="numeric" placeholder="เลข 4 ตัว" style="width:110px" onkeydown="if(event.key==='Enter')cqLookup()">
+          <button class="btn btn-navy" onclick="cqLookup()"><i class="ti ti-search"></i> ค้นหา</button>
+        </div>
       </div>
       <div id="co-list"></div>
     </div>
@@ -259,6 +280,12 @@ td{padding:8px;border-bottom:1px solid #EAF1F7;vertical-align:middle}
         <button class="btn btn-out" onclick="printCalTest()"><i class="ti ti-focus-2"></i> พิมพ์หน้าทดสอบ</button>
       </div>
       <div class="card">
+        <b style="font-size:14px"><i class="ti ti-address-book"></i> รายชื่อพนักงาน NatureWorks (Autocomplete ช่อง "ผู้ที่มาพบ")</b>
+        <div class="hint" style="margin-bottom:8px">หนึ่งบรรทัดต่อหนึ่งคน รูปแบบ: <b>ชื่อ-นามสกุล, แผนก</b> — หน้าลงทะเบียนจะแนะนำชื่อและเติมแผนกให้อัตโนมัติ</div>
+        <textarea id="gp-contacts" rows="7" placeholder="Kannikar Thaicharoen, EHS / ความปลอดภัยและสิ่งแวดล้อม&#10;Sirisak Charoenkitpeeti, EHS / ความปลอดภัยและสิ่งแวดล้อม"></textarea>
+        <button class="btn btn-teal" style="margin-top:8px" onclick="saveContacts()"><i class="ti ti-device-floppy"></i> บันทึกรายชื่อ</button>
+      </div>
+      <div class="card">
         <b style="font-size:14px"><i class="ti ti-qrcode"></i> QR Poster สำหรับติดที่ป้อม</b>
         <div class="hint" style="margin-bottom:10px">ผู้มาติดต่อ / รถขนส่ง / พนักงาน สแกนเพื่อเปิดหน้าลงทะเบียนด้วยตนเอง</div>
         <button class="btn btn-navy" onclick="printPoster()"><i class="ti ti-printer"></i> พิมพ์ Poster (A4)</button>
@@ -268,6 +295,13 @@ td{padding:8px;border-bottom:1px solid #EAF1F7;vertical-align:middle}
   </div>
 </div>
 
+<div class="modal-bg" id="cam-bg"><div class="modal" style="max-width:440px;text-align:center">
+  <h3><i class="ti ti-camera"></i> ถ่ายรูปยืนยันตัวตน</h3>
+  <video id="cam-video" autoplay playsinline style="width:100%;border-radius:10px;background:#000"></video>
+  <div class="rowflex" style="justify-content:center;margin-top:10px">
+    <button class="btn btn-out" onclick="closeCamera()">ยกเลิก</button>
+    <button class="btn btn-teal" onclick="snapPhoto()"><i class="ti ti-camera"></i> ถ่ายรูป</button>
+  </div></div></div>
 <div class="modal-bg" id="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal" id="modal-body"></div></div>
 <div class="toast" id="toast"></div>
 
@@ -281,9 +315,69 @@ td{padding:8px;border-bottom:1px solid #EAF1F7;vertical-align:middle}
 const firebaseConfig={apiKey:"AIzaSyCKASP9RLRFgvdsM98cgbK3gJQiYQDqFC4",authDomain:"nw-contractor-training.firebaseapp.com",projectId:"nw-contractor-training",storageBucket:"nw-contractor-training.firebasestorage.app",messagingSenderId:"543139137624",appId:"1:543139137624:web:04b331bd7187046352222d"};
 firebase.initializeApp(firebaseConfig);const db=firebase.firestore();
 const CLD_CLOUD="zjtygb1h",CLD_PRESET="nw_ctms_unsigned";
-const APP_VER="v1.0";document.getElementById("ver-badge").textContent=APP_VER;
+const APP_VER="v1.1";document.getElementById("ver-badge").textContent=APP_VER;
 const POS_LABEL={GEN:"พนักงานทั่วไป / General",SAF:"จป.หัวหน้างาน / Safety Sup.",FWM:"Fire Watchman",DRV:"พนักงานขับรถขนส่ง / Transport Driver"};
 const GROUP_TH={contractor:"ผู้รับเหมา",visitor:"ผู้มาติดต่อ",delivery:"รถขนส่ง",tempemp:"พนักงาน(ชั่วคราว)"};
+const DEPTS=["Administration / ธุรการ","HR / ทรัพยากรบุคคล","EHS / ความปลอดภัยฯ","Production / ฝ่ายผลิต","Maintenance / ซ่อมบำรุง","Engineering / วิศวกรรม","QA-QC / Laboratory","Warehouse & Logistics / คลังสินค้า","Procurement / จัดซื้อ","IT / เทคโนโลยีสารสนเทศ","Finance & Accounting / บัญชีการเงิน"];
+const PURPOSES=["ประชุม / ติดต่อธุรกิจ","เข้าปฏิบัติงาน / ให้บริการ","ส่ง-รับเอกสาร","ส่งสินค้า / รับสินค้า","ตรวจสอบ / Audit","สัมภาษณ์งาน","เยี่ยมชมโรงงาน","อื่นๆ (โปรดระบุ)"];
+const CARGOS=["สารเคมี / Chemicals","บรรจุภัณฑ์ / Packaging","อุปกรณ์ / เครื่องมือ","พัสดุไปรษณีย์","อาหาร / เครื่องดื่ม","อุปกรณ์ PPE","ของใช้สำนักงาน","อื่นๆ (โปรดระบุ)"];
+const REASONS=["พนักงานใหม่ยังไม่มีบัตรพนักงาน","บัตรพนักงานชำรุด / สูญหาย","ลืมนำบัตรพนักงานมา","อื่นๆ (โปรดระบุ)"];
+function fillSel(id,arr,extra){const s=document.getElementById(id);if(!s)return;s.innerHTML='<option value="">— เลือก —</option>'+arr.map(x=>`<option>${x}</option>`).join("")+(extra||"");}
+function buildSelects(){fillSel("r-purpose-sel",PURPOSES);fillSel("r-cargo",CARGOS);fillSel("r-dept",DEPTS);fillSel("r-reason",REASONS);fillSel("r-cdept",DEPTS,'<option>ไม่ทราบ</option>');}
+function refreshOthers(){
+  const f=(sel,box,vis)=>{const e=document.getElementById(sel);const on=vis&&e&&(e.value||"").startsWith("อื่นๆ");document.getElementById(box).style.display=on?"block":"none";};
+  f("r-purpose-sel","fg-purpose-other",REG_TYPE&&REG_TYPE!=="tempemp");
+  f("r-cargo","fg-cargo-other",REG_TYPE==="delivery");
+  f("r-reason","fg-reason-other",REG_TYPE==="tempemp");
+}
+/* live camera capture — บังคับถ่ายสด */
+let PHOTO_BLOB=null,CAM_STREAM=null;
+async function openCamera(){
+  try{CAM_STREAM=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user"},audio:false});
+    document.getElementById("cam-bg").classList.add("show");
+    document.getElementById("cam-video").srcObject=CAM_STREAM;
+  }catch(e){showToast("⚠ เปิดกล้องไม่ได้ — กรุณาอนุญาตการใช้กล้อง ("+e.message+")");}
+}
+function closeCamera(){if(CAM_STREAM){CAM_STREAM.getTracks().forEach(t=>t.stop());CAM_STREAM=null;}document.getElementById("cam-bg").classList.remove("show");}
+function snapPhoto(){
+  const v=document.getElementById("cam-video");if(!v.videoWidth){showToast("⚠ กล้องยังไม่พร้อม");return;}
+  const c=document.createElement("canvas");c.width=v.videoWidth;c.height=v.videoHeight;
+  c.getContext("2d").drawImage(v,0,0);
+  c.toBlob(b=>{PHOTO_BLOB=b;const p=document.getElementById("r-photo-prev");p.src=URL.createObjectURL(b);p.style.display="inline-block";document.getElementById("r-photo-ok").style.display="inline";closeCamera();},"image/jpeg",0.85);
+}
+/* contacts autocomplete */
+let CONTACTS=[],CONTACTS_RAW="";
+async function loadContacts(){
+  try{const s=await db.collection("config").doc("gatepass").get();
+    CONTACTS_RAW=(s.exists&&s.data().contacts)||"";
+    CONTACTS=CONTACTS_RAW.split("\n").map(l=>l.split(",")).filter(a=>a[0]&&a[0].trim()).map(a=>({n:a[0].trim(),d:(a[1]||"").trim()}));
+    const dl=document.getElementById("contacts-dl");if(dl)dl.innerHTML=CONTACTS.map(c=>`<option value="${esc(c.n)}">`).join("");
+    const ta=document.getElementById("gp-contacts");if(ta)ta.value=CONTACTS_RAW;
+  }catch(e){}
+}
+function contactPick(){
+  const v=(document.getElementById("r-contact").value||"").trim();
+  const m=CONTACTS.find(c=>c.n===v);if(!m||!m.d)return;
+  const sel=document.getElementById("r-cdept");
+  for(const o of sel.options){if(o.text===m.d){sel.value=o.value||o.text;return;}}
+  const o=document.createElement("option");o.text=m.d;sel.add(o);sel.value=m.d;
+}
+async function saveContacts(){
+  try{await db.collection("config").doc("gatepass").set({contacts:document.getElementById("gp-contacts").value||""},{merge:true});
+  showToast("✅ บันทึกรายชื่อแล้ว");loadContacts();}catch(e){showToast("⚠ "+e.message);}
+}
+/* quick 4-digit lookup */
+function _yrOpts(t){const y=bkk().getFullYear(),b=beYear();return t==="VP"?[b,b-1]:[y,y-1];}
+function qsYear(){const t=document.getElementById("qs-type").value;document.getElementById("qs-year").innerHTML=_yrOpts(t).map(x=>`<option>${x}</option>`).join("");}
+function cqYear(){const t=document.getElementById("cq-type").value;document.getElementById("cq-year").innerHTML=_yrOpts(t).map(x=>`<option>${x}</option>`).join("");}
+function _qcode(t,y,n){n=String(n||"").replace(/\D/g,"");if(!n){showToast("⚠ กรอกเลข 4 ตัวท้าย");return null;}return `${t}-${y}-${n.padStart(4,"0")}`;}
+function qsLookup(){const c=_qcode(document.getElementById("qs-type").value,document.getElementById("qs-year").value,document.getElementById("qs-num").value);if(c){document.getElementById("qs-num").value="";handleCode(c);}}
+function cqLookup(){
+  const c=_qcode(document.getElementById("cq-type").value,document.getElementById("cq-year").value,document.getElementById("cq-num").value);if(!c)return;
+  const l=_open.find(x=>x.cardId===c||x.vpNo===c);
+  document.getElementById("cq-num").value="";
+  if(l)openCheckout(l._id);else showToast("⚠ ไม่พบ "+c+" ในรายการที่อยู่ในโรงงาน");
+}
 const GROUP_BADGE={contractor:"b-con",visitor:"b-vis",delivery:"b-del",tempemp:"b-emp"};
 let SESSION=null,CFG={},REG_TYPE="",QRSCAN=null,CAM_ON=false;
 let _pending=[],_open=[],_hist=[],UNSUB_GV=null,UNSUB_LOG=null;
@@ -327,12 +421,14 @@ function enterGuard(){
   document.getElementById("h-date").value=today();
   document.getElementById("cal-ox").value=localStorage.getItem("gp_ox")||"0";
   document.getElementById("cal-oy").value=localStorage.getItem("gp_oy")||"0";
+  qsYear();cqYear();loadContacts();
 }
 function setTab(t){
   document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.t===t));
   document.querySelectorAll(".tabpane").forEach(x=>x.classList.remove("active"));
   document.getElementById("tp-"+t).classList.add("active");
-  if(t==="checkout")setTimeout(()=>document.getElementById("co-rfid").focus(),150);
+  if(t==="checkout"){cqYear();setTimeout(()=>document.getElementById("co-rfid").focus(),150);}
+  if(t==="scan"){qsYear();setTimeout(()=>document.getElementById("manual-code").focus(),150);}
   if(t!=="scan")stopCam();
 }
 
@@ -353,7 +449,7 @@ function startListeners(){
 
 /* ── Cloudinary ── */
 async function uploadPhoto(file){
-  const fd=new FormData();fd.append("file",file);fd.append("upload_preset",CLD_PRESET);fd.append("folder","gatepass");
+  const fd=new FormData();fd.append("file",file,"photo.jpg");fd.append("upload_preset",CLD_PRESET);fd.append("folder","gatepass");
   const res=await fetch(`https://api.cloudinary.com/v1_1/${CLD_CLOUD}/image/upload`,{method:"POST",body:fd});
   if(!res.ok)throw new Error("อัปโหลดรูปไม่สำเร็จ");
   return (await res.json()).secure_url;
@@ -370,7 +466,7 @@ async function genVP(){
 }
 
 /* ═══════════ SELF-REGISTRATION ═══════════ */
-function openReg(){showScreen("s-reg");}
+function openReg(){showScreen("s-reg");buildSelects();loadContacts();}
 function setRegType(t){
   REG_TYPE=t;
   ["visitor","delivery","tempemp"].forEach(x=>document.getElementById("tb-"+x).classList.toggle("sel",x===t));
@@ -382,29 +478,44 @@ function setRegType(t){
   document.getElementById("fg-purpose").style.display=isEmp?"none":"block";
   document.getElementById("fg-reason").style.display=isEmp?"block":"none";
   document.getElementById("fg-cargo").style.display=isDel?"block":"none";
+  document.getElementById("fg-cdept").style.display=isEmp?"none":"block";
   document.getElementById("plate-req").style.display=isDel?"inline":"none";
+  document.getElementById("r-plate").placeholder=isDel?"จำเป็นต้องระบุ":"เว้นว่างได้หากไม่มีรถ";
+  refreshOthers();
 }
 function gv(id){return (document.getElementById(id).value||"").trim();}
 async function submitReg(){
   if(!REG_TYPE){showToast("⚠ กรุณาเลือกประเภท");return;}
   const fn=gv("r-fn"),ln=gv("r-ln"),idno=gv("r-idno"),tel=gv("r-tel"),plate=gv("r-plate");
-  const co=gv("r-co"),dept=gv("r-dept"),contact=gv("r-contact"),purpose=gv("r-purpose"),reason=gv("r-reason"),cargo=gv("r-cargo");
+  const co=gv("r-co"),dept=gv("r-dept"),contact=gv("r-contact"),cdept=gv("r-cdept");
   const isDel=REG_TYPE==="delivery",isEmp=REG_TYPE==="tempemp";
+  let purpose=gv("r-purpose-sel"),reason=gv("r-reason"),cargo=gv("r-cargo");
   if(!fn||!ln||!idno||!tel){showToast("⚠ กรอกชื่อ นามสกุล เลขบัตร และเบอร์โทรให้ครบ");return;}
-  if(!isEmp&&(!co||!contact||!purpose)){showToast("⚠ กรอกบริษัท ผู้ที่มาพบ และวัตถุประสงค์");return;}
-  if(isEmp&&(!dept||!reason)){showToast("⚠ กรอกแผนกและเหตุผล");return;}
-  if(isDel&&!plate){showToast("⚠ รถขนส่งต้องระบุทะเบียนรถ");return;}
-  if(isDel&&!cargo){showToast("⚠ เลือกประเภทสินค้าที่นำส่ง");return;}
-  const pf=document.getElementById("r-photo").files[0];
-  if(!pf){showToast("⚠ กรุณาถ่ายรูปผู้ลงทะเบียน");return;}
+  if(!isEmp){
+    if(!co||!contact){showToast("⚠ กรอกบริษัทและผู้ที่มาพบ");return;}
+    if(!cdept){showToast("⚠ เลือกแผนกของพนักงานที่ต้องการติดต่อ");return;}
+    if(!purpose){showToast("⚠ เลือกวัตถุประสงค์");return;}
+    if(purpose.startsWith("อื่นๆ")){const o=gv("r-purpose-other");if(!o){showToast("⚠ ระบุวัตถุประสงค์");return;}purpose="อื่นๆ: "+o;}
+  }
+  if(isEmp){
+    if(!dept){showToast("⚠ เลือกแผนก");return;}
+    if(!reason){showToast("⚠ เลือกเหตุผลที่ขอบัตรชั่วคราว");return;}
+    if(reason.startsWith("อื่นๆ")){const o=gv("r-reason-other");if(!o){showToast("⚠ ระบุเหตุผล");return;}reason="อื่นๆ: "+o;}
+  }
+  if(isDel){
+    if(!plate){showToast("⚠ รถขนส่งจำเป็นต้องระบุทะเบียนรถ");return;}
+    if(!cargo){showToast("⚠ เลือกประเภทสินค้าที่นำส่ง");return;}
+    if(cargo.startsWith("อื่นๆ")){const o=gv("r-cargo-other");if(!o){showToast("⚠ ระบุสิ่งที่นำมาส่ง");return;}cargo="อื่นๆ: "+o;}
+  }
+  if(!PHOTO_BLOB){showToast("⚠ กรุณาเปิดกล้องถ่ายรูปเพื่อยืนยันตัวตน");return;}
   const btn=document.getElementById("r-submit");btn.disabled=true;btn.innerHTML='<span class="spin"></span> กำลังส่งข้อมูล...';
   try{
-    const photo=await uploadPhoto(pf);
+    const photo=await uploadPhoto(PHOTO_BLOB);
     const id="GV-"+Date.now();
     await db.collection("gate_visitors").doc(id).set({
       id,vpType:REG_TYPE,fn,ln,co:isEmp?"NatureWorks":co,dept:dept||null,idno,tel,
-      contact:contact||null,purpose:purpose||null,reason:reason||null,
-      plate:plate||null,cargoType:cargo||null,photo,
+      contact:contact||null,contactDept:isEmp?null:(cdept||null),purpose:isEmp?null:(purpose||null),reason:isEmp?(reason||null):null,
+      plate:plate||null,cargoType:isDel?(cargo||null):null,photo,
       status:"pending",vpNo:null,rfid:null,vehiclePassNo:null,
       date:today(),createdAt:firebase.firestore.FieldValue.serverTimestamp()
     });
@@ -477,14 +588,16 @@ function renderCheckinPanel(r,cardId,posCode,isDRV){
   <div class="grid3">
     <div class="fg"><label>ทะเบียนรถ ${isDRV?'<span class="req">*</span>':"(เว้นว่างได้)"}</label><input id="ci-plate"></div>
     <div class="fg" ${isDRV?"":'style="display:none"'}><label>ประเภทสินค้าที่นำส่ง <span class="req">*</span></label>
-      <select id="ci-cargo"><option value="">— เลือก —</option><option>สารเคมี / Chemicals</option><option>บรรจุภัณฑ์ / Packaging</option><option>เม็ดพลาสติก / Plastic Resin</option><option>วัตถุดิบ / Raw Material</option><option>อื่นๆ / Other</option></select></div>
+      <select id="ci-cargo" onchange="document.getElementById('ci-cargo-other-box').style.display=this.value.startsWith('อื่นๆ')?'block':'none'">${'<option value="">— เลือก —</option>'+CARGOS.map(c=>`<option>${c}</option>`).join("")}</select>
+      <div id="ci-cargo-other-box" style="display:none;margin-top:6px"><input id="ci-cargo-other" placeholder="ระบุสิ่งที่นำมาส่ง"></div></div>
     <div class="fg"><label>Assign บัตร RFID (แตะบัตร / เว้นว่างได้)</label><input id="ci-rfid" placeholder="แตะบัตรกับเครื่องอ่าน..."></div>
   </div>
   <button class="btn btn-teal btn-big" onclick="doCheckIn('${r.id}','${esc(cardId)}','${posCode}',${isDRV})"><i class="ti ti-login"></i> Check-in เข้าโรงงาน (${nowTime()} น.)</button>`);
 }
 async function doCheckIn(regId,cardId,posCode,isDRV){
   const plate=(document.getElementById("ci-plate").value||"").trim();
-  const cargoEl=document.getElementById("ci-cargo");const cargo=cargoEl?(cargoEl.value||"").trim():"";
+  const cargoEl=document.getElementById("ci-cargo");let cargo=cargoEl?(cargoEl.value||"").trim():"";
+  if(cargo.startsWith("อื่นๆ")){const o=(document.getElementById("ci-cargo-other").value||"").trim();if(!o){showToast("⚠ ระบุสิ่งที่นำมาส่ง");return;}cargo="อื่นๆ: "+o;}
   const rfid=(document.getElementById("ci-rfid").value||"").trim();
   if(isDRV&&!plate){showToast("⚠ พนักงานขับรถขนส่งต้องระบุทะเบียนรถ");return;}
   if(isDRV&&!cargo){showToast("⚠ เลือกประเภทสินค้าที่นำส่ง");return;}
@@ -623,7 +736,8 @@ function coSearch(){
   const exact=_open.find(l=>l.rfid&&l.rfid===v);
   if(exact){document.getElementById("co-rfid").value="";openCheckout(exact._id);return;}
   const lv=v.toLowerCase();
-  const rows=_open.filter(l=>(l.name||"").toLowerCase().includes(lv)||(l.vpNo||"").toLowerCase().includes(lv)||(l.plate||"").toLowerCase().includes(lv)||(l.cardId||"").toLowerCase().includes(lv));
+  const rows=/^\d{13}$/.test(v)?_open.filter(l=>l.idno===v)
+    :_open.filter(l=>(l.name||"").toLowerCase().includes(lv)||(l.vpNo||"").toLowerCase().includes(lv)||(l.plate||"").toLowerCase().includes(lv)||(l.cardId||"").toLowerCase().includes(lv));
   coRenderRows(rows,document.getElementById("co-list"));
   if(!rows.length)showToast("⚠ ไม่พบ: "+v);
 }
