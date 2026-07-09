@@ -105,7 +105,7 @@ tr.rowclick{cursor:pointer}tr.rowclick:hover td{background:#F2F8FC}
 <div class="screen active" id="s-home">
   <div class="home-logo">
     <img src="https://kannikarthaicharoen-stack.github.io/nw-ctms/logo.png" alt="NatureWorks">
-    <span class="vbadge" id="ver-badge">v1.3</span>
+    <span class="vbadge" id="ver-badge">v1.5</span>
   </div>
   <div class="home-title">Gate Pass Control</div>
   <div class="home-sub">ระบบควบคุมการผ่านเข้า–ออก ป้อมรักษาความปลอดภัย · NBC Plant</div>
@@ -319,7 +319,7 @@ tr.rowclick{cursor:pointer}tr.rowclick:hover td{background:#F2F8FC}
 const firebaseConfig={apiKey:"AIzaSyCKASP9RLRFgvdsM98cgbK3gJQiYQDqFC4",authDomain:"nw-contractor-training.firebaseapp.com",projectId:"nw-contractor-training",storageBucket:"nw-contractor-training.firebasestorage.app",messagingSenderId:"543139137624",appId:"1:543139137624:web:04b331bd7187046352222d"};
 firebase.initializeApp(firebaseConfig);const db=firebase.firestore();
 const CLD_CLOUD="zjtygb1h",CLD_PRESET="nw_ctms_unsigned";
-const APP_VER="v1.3";document.getElementById("ver-badge").textContent=APP_VER;
+const APP_VER="v1.5";document.getElementById("ver-badge").textContent=APP_VER;
 const POS_LABEL={GEN:"พนักงานทั่วไป / General",SAF:"จป.หัวหน้างาน / Safety Sup.",FWM:"Fire Watchman",DRV:"พนักงานขับรถขนส่ง / Transport Driver",SUP:"พนักงานสนับสนุน / Supporting Staff"};
 const GROUP_TH={contractor:"ผู้รับเหมา",visitor:"ผู้มาติดต่อ",delivery:"รถขนส่ง",tempemp:"พนักงาน(ชั่วคราว)"};
 const DEPTS=["Administration / ธุรการ","HR / ทรัพยากรบุคคล","EHS / ความปลอดภัยฯ","Production / ฝ่ายผลิต","Maintenance / ซ่อมบำรุง","Engineering / วิศวกรรม","QA-QC / Laboratory","Warehouse & Logistics / คลังสินค้า","Procurement / จัดซื้อ","IT / เทคโนโลยีสารสนเทศ","Finance & Accounting / บัญชีการเงิน"];
@@ -873,35 +873,38 @@ function saveCal(){
   localStorage.setItem("gp_oy",document.getElementById("cal-oy").value||"0");
   showToast("✅ บันทึก Offset แล้ว (เครื่องนี้)");
 }
-function printBase(bodyHTML,pageSize){
-  const w=window.open("","_blank","width=760,height=900");
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+function qrDataURL(text,px){
+  const d=document.createElement("div");d.style.cssText="position:fixed;left:-9999px";document.body.appendChild(d);
+  new QRCode(d,{text,width:px,height:px,correctLevel:QRCode.CorrectLevel.M});
+  const cv=d.querySelector("canvas");const url=cv?cv.toDataURL("image/png"):(d.querySelector("img")||{}).src||"";
+  document.body.removeChild(d);return url;
+}
+function printViaFrame(bodyHTML,pageSize){
+  const old=document.getElementById("print-frame");if(old)old.remove();
+  const f=document.createElement("iframe");f.id="print-frame";
+  f.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden";
+  document.body.appendChild(f);
+  const doc=f.contentDocument||f.contentWindow.document;
+  doc.open();
+  doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>
 @page{size:${pageSize};margin:0}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 body{font-family:'Leelawadee UI','IBM Plex Sans Thai',Tahoma,Arial,sans-serif;background:#fff;position:relative}
 .sheet{position:relative;overflow:hidden}
 .abs{position:absolute;white-space:nowrap;color:#000}
-.noprint{position:fixed;top:0;left:0;right:0;background:#1F497D;color:#fff;padding:8px 14px;font-size:13px;display:flex;gap:10px;align-items:center;z-index:9}
-.noprint button{font-family:inherit;border:none;border-radius:6px;padding:6px 16px;font-weight:700;cursor:pointer;background:#00B5A8;color:#fff}
-@media print{.noprint{display:none}}
-</style></head><body>${bodyHTML}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
-<script>window.__ready=function(){setTimeout(()=>window.print(),400);};<\/script>
-</body></html>`);
-  w.document.close();
-  return w;
+</style></head><body>${bodyHTML}</body></html>`);
+  doc.close();
+  showToast("🖨 กำลังเปิดหน้าต่างพิมพ์...");
+  setTimeout(()=>{try{f.contentWindow.focus();f.contentWindow.print();}catch(e){showToast("⚠ พิมพ์ไม่ได้: "+e.message);}},450);
 }
 function printVisitorPass(v){
   const ox=calOX(),oy=calOY();
-  const guard=(SESSION&&SESSION.email?SESSION.email.split("@")[0]:"");
   const dt=today().split("-").reverse().join("/");
   const F="font-size:3.7mm;font-weight:600";
   const body=`
-  <div class="noprint"><b>ใบผ่าน ${esc(v.vpNo||"")}</b> — ใส่กระดาษฟอร์ม A5 ลงเครื่องพิมพ์ แล้วกดพิมพ์ (Offset: ${ox}, ${oy})
-    <button onclick="window.print()">🖨 พิมพ์</button></div>
   <div class="sheet" style="width:148mm;height:210mm">
    <div style="position:absolute;left:${ox}mm;top:${oy}mm;width:148mm;height:210mm">
-    <div class="abs" style="left:6mm;top:2.5mm;width:13mm;height:13mm"><div id="pqr"></div></div>
+    <img class="abs" src="${qrDataURL("NBCV|"+(v.vpNo||""),196)}" style="left:6mm;top:2.5mm;width:13mm;height:13mm">
     <div class="abs" style="left:96mm;top:5mm;width:46mm;text-align:right;font-size:5.2mm;font-weight:800">${esc(v.vpNo||"")}</div>
     <div class="abs" style="left:7.4mm;top:27.2mm;${F}">${esc(dt)}</div>
     <div class="abs" style="left:53.8mm;top:27.2mm;${F};max-width:42mm;overflow:hidden">${esc(v.fn)} ${esc(v.ln)}</div>
@@ -912,27 +915,15 @@ function printVisitorPass(v){
     <div class="abs" style="left:7.4mm;top:56.5mm;font-size:4.4mm;font-weight:800">${esc(v.vpNo||"")}</div>
     <div class="abs" style="left:53.8mm;top:56.5mm;${F}">${esc(v.vehiclePassNo||v.plate||"")}</div>
     <div class="abs" style="left:101.5mm;top:56mm;${F}">${nowTime()} น.</div>
-    <div class="abs" style="left:7.4mm;top:78mm;${F}">${esc(v.fn)} ${esc(v.ln)}</div>
-    <div class="abs" style="left:53.8mm;top:79.3mm;font-size:3.4mm;font-weight:600;max-width:42mm;overflow:hidden">${esc(v.contact||"")}</div>
-    <div class="abs" style="left:100.2mm;top:78mm;${F}">${esc(guard)}</div>
    </div>
   </div>`;
-  const w=printBase(body,"A5 portrait");
-  const t=setInterval(()=>{try{
-    if(w.document.getElementById("pqr")&&w.QRCode){
-      clearInterval(t);
-      new w.QRCode(w.document.getElementById("pqr"),{text:"NBCV|"+(v.vpNo||""),width:49,height:49,correctLevel:w.QRCode.CorrectLevel.M});
-      const img=w.document.querySelector("#pqr img, #pqr canvas");if(img){img.style.width="13mm";img.style.height="13mm";}
-      w.__ready();
-    }}catch(e){}},120);
+  printViaFrame(body,"A5 portrait");
 }
 function printCalTest(){
   const ox=parseFloat(document.getElementById("cal-ox").value||"0")||0;
   const oy=parseFloat(document.getElementById("cal-oy").value||"0")||0;
   const cross=(x,y)=>`<div class="abs" style="left:${x-3}mm;top:${y}mm;width:6mm;height:.25mm;background:#000"></div><div class="abs" style="left:${x}mm;top:${y-3}mm;width:.25mm;height:6mm;background:#000"></div>`;
   const body=`
-  <div class="noprint"><b>Calibration Test</b> — พิมพ์ลงกระดาษฟอร์มจริง แล้วดูว่ากรอบเส้นประทาบกับตารางพอดีหรือไม่ (Offset: ${ox}, ${oy})
-    <button onclick="window.print()">🖨 พิมพ์</button></div>
   <div class="sheet" style="width:148mm;height:210mm">
    <div style="position:absolute;left:${ox}mm;top:${oy}mm;width:148mm;height:210mm">
     <div class="abs" style="left:4.4mm;top:20mm;width:139.2mm;height:64.8mm;border:.3mm dashed #000"></div>
@@ -946,13 +937,11 @@ function printCalTest(){
       กรอบเส้นประต้องทาบสนิทกับเส้นตารางบนฟอร์ม — ถ้าเลื่อนขวา ให้ลด Offset X / เลื่อนลง ให้ลด Offset Y (ปรับทีละ 0.5 มม. แล้วพิมพ์ทดสอบใหม่)</div>
    </div>
   </div>`;
-  const w=printBase(body,"A5 portrait");
-  setTimeout(()=>{try{w.__ready();}catch(e){}},600);
+  printViaFrame(body,"A5 portrait");
 }
 function printPoster(){
   const url=location.origin+location.pathname+"?reg=1";
   const body=`
-  <div class="noprint"><b>QR Poster</b> <button onclick="window.print()">🖨 พิมพ์</button></div>
   <div class="sheet" style="width:210mm;height:297mm;display:flex;flex-direction:column;align-items:center">
     <div style="width:100%;background:#1F497D;color:#fff;text-align:center;padding:14mm 10mm 10mm">
       <img src="https://kannikarthaicharoen-stack.github.io/nw-ctms/logo.png" style="height:14mm;background:#fff;padding:2.5mm 6mm;border-radius:3mm">
@@ -960,7 +949,7 @@ function printPoster(){
       <div style="font-size:6mm;font-weight:600;opacity:.9">Site Entry Self-Registration</div>
     </div>
     <div style="height:5mm;width:100%;background:#00B5A8"></div>
-    <div style="margin-top:12mm;border:1.2mm solid #1F497D;border-radius:6mm;padding:8mm"><div id="posterqr"></div></div>
+    <div style="margin-top:12mm;border:1.2mm solid #1F497D;border-radius:6mm;padding:8mm"><img src="${qrDataURL(url,560)}" style="width:72mm;height:72mm;display:block"></div>
     <div style="font-size:7.5mm;font-weight:800;color:#1F497D;margin-top:8mm">สแกน QR เพื่อลงทะเบียนด้วยตนเอง</div>
     <div style="font-size:4.6mm;color:#4A7396;font-weight:600">Scan to register — Visitor · Delivery · Temporary Pass</div>
     <div style="margin-top:10mm;font-size:5mm;color:#123A66;line-height:2;text-align:left">
@@ -970,13 +959,7 @@ function printPoster(){
     <div style="margin-top:auto;width:100%;background:#EEF3F8;text-align:center;padding:6mm;font-size:3.8mm;color:#6E93AF">
       NatureWorks Asia Pacific Co., Ltd. — NBC Plant · Gate Pass Control ${APP_VER}</div>
   </div>`;
-  const w=printBase(body,"A4 portrait");
-  const t=setInterval(()=>{try{
-    if(w.document.getElementById("posterqr")&&w.QRCode){clearInterval(t);
-      new w.QRCode(w.document.getElementById("posterqr"),{text:url,width:280,height:280,correctLevel:w.QRCode.CorrectLevel.M});
-      const img=w.document.querySelector("#posterqr img, #posterqr canvas");if(img){img.style.width="72mm";img.style.height="72mm";}
-      w.__ready();
-    }}catch(e){}},120);
+  printViaFrame(body,"A4 portrait");
 }
 </script>
 <script>
