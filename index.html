@@ -93,6 +93,10 @@ td{padding:8px;border-bottom:1px solid #EAF1F7;vertical-align:middle}
 .spin{display:inline-block;width:16px;height:16px;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:middle}
 @keyframes sp{to{transform:rotate(360deg)}}
 .login-box{max-width:380px;margin:60px auto;padding:0 16px}
+tr.rowclick{cursor:pointer}tr.rowclick:hover td{background:#F2F8FC}
+.dgrid{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:13px;margin-top:10px}
+.dgrid .dl{color:var(--grey);font-size:11.5px;font-weight:600;padding-top:1px;white-space:nowrap}
+.dgrid .dv{font-weight:600;word-break:break-word}
 </style>
 </head>
 <body>
@@ -101,7 +105,7 @@ td{padding:8px;border-bottom:1px solid #EAF1F7;vertical-align:middle}
 <div class="screen active" id="s-home">
   <div class="home-logo">
     <img src="https://kannikarthaicharoen-stack.github.io/nw-ctms/logo.png" alt="NatureWorks">
-    <span class="vbadge" id="ver-badge">v1.1</span>
+    <span class="vbadge" id="ver-badge">v1.3</span>
   </div>
   <div class="home-title">Gate Pass Control</div>
   <div class="home-sub">ระบบควบคุมการผ่านเข้า–ออก ป้อมรักษาความปลอดภัย · NBC Plant</div>
@@ -315,8 +319,8 @@ td{padding:8px;border-bottom:1px solid #EAF1F7;vertical-align:middle}
 const firebaseConfig={apiKey:"AIzaSyCKASP9RLRFgvdsM98cgbK3gJQiYQDqFC4",authDomain:"nw-contractor-training.firebaseapp.com",projectId:"nw-contractor-training",storageBucket:"nw-contractor-training.firebasestorage.app",messagingSenderId:"543139137624",appId:"1:543139137624:web:04b331bd7187046352222d"};
 firebase.initializeApp(firebaseConfig);const db=firebase.firestore();
 const CLD_CLOUD="zjtygb1h",CLD_PRESET="nw_ctms_unsigned";
-const APP_VER="v1.1";document.getElementById("ver-badge").textContent=APP_VER;
-const POS_LABEL={GEN:"พนักงานทั่วไป / General",SAF:"จป.หัวหน้างาน / Safety Sup.",FWM:"Fire Watchman",DRV:"พนักงานขับรถขนส่ง / Transport Driver"};
+const APP_VER="v1.3";document.getElementById("ver-badge").textContent=APP_VER;
+const POS_LABEL={GEN:"พนักงานทั่วไป / General",SAF:"จป.หัวหน้างาน / Safety Sup.",FWM:"Fire Watchman",DRV:"พนักงานขับรถขนส่ง / Transport Driver",SUP:"พนักงานสนับสนุน / Supporting Staff"};
 const GROUP_TH={contractor:"ผู้รับเหมา",visitor:"ผู้มาติดต่อ",delivery:"รถขนส่ง",tempemp:"พนักงาน(ชั่วคราว)"};
 const DEPTS=["Administration / ธุรการ","HR / ทรัพยากรบุคคล","EHS / ความปลอดภัยฯ","Production / ฝ่ายผลิต","Maintenance / ซ่อมบำรุง","Engineering / วิศวกรรม","QA-QC / Laboratory","Warehouse & Logistics / คลังสินค้า","Procurement / จัดซื้อ","IT / เทคโนโลยีสารสนเทศ","Finance & Accounting / บัญชีการเงิน"];
 const PURPOSES=["ประชุม / ติดต่อธุรกิจ","เข้าปฏิบัติงาน / ให้บริการ","ส่ง-รับเอกสาร","ส่งสินค้า / รับสินค้า","ตรวจสอบ / Audit","สัมภาษณ์งาน","เยี่ยมชมโรงงาน","อื่นๆ (โปรดระบุ)"];
@@ -567,7 +571,7 @@ async function lookupContractor(cardId,idno,pos){
     if(!r.cardIssued){blockPanel("ยังไม่ได้รับบัตร",`สถานะ: ${esc(r.approvalStatus||"รอตรวจสอบ")} — ให้ติดต่อขั้นตอนออกบัตรก่อน`,r);return;}
     if(r.cardExpiry&&r.cardExpiry<today()){blockPanel("บัตรหมดอายุ",`หมดอายุเมื่อ: <b>${esc(r.cardExpiry)}</b> — ต้องอบรม/ต่ออายุใหม่`,r);return;}
     const openLog=_open.find(l=>l.cardId===cardId);
-    const posCode=pos||( {general:"GEN",safety:"SAF",firewatchman:"FWM",driver:"DRV"}[r.position]||"GEN");
+    const posCode=pos||( {general:"GEN",safety:"SAF",firewatchman:"FWM",driver:"DRV",support:"SUP"}[r.position]||"GEN");
     const isDRV=posCode==="DRV"||r.isDriver===true;
     if(openLog){renderCheckoutPanel(openLog,r);return;}
     renderCheckinPanel(r,cardId,posCode,isDRV);
@@ -722,13 +726,13 @@ function renderCoList(){
 function coRenderRows(rows,el){
   if(!rows.length){el.innerHTML='<div class="card" style="text-align:center;color:var(--grey)">— ไม่มีผู้ค้างอยู่ในโรงงาน —</div>';return;}
   el.innerHTML=`<div class="card tscroll"><table><thead><tr><th></th><th>ชื่อ</th><th>กลุ่ม</th><th>เข้า</th><th>รถ</th><th>RFID</th><th></th></tr></thead><tbody>`+
-  rows.map(l=>`<tr>
+  rows.map(l=>`<tr class="rowclick" onclick="showLogDetail('${l._id}')">
     <td>${l.photo?`<img class="tphoto" src="${esc(l.photo)}">`:""}</td>
     <td><b>${esc(l.name)}</b><br><span style="font-size:11px;color:var(--grey)">${esc(l.co||"")}</span></td>
     <td><span class="badge ${GROUP_BADGE[l.group]||"b-info"}">${GROUP_TH[l.group]||l.group}</span></td>
     <td>${esc(l.inTime||"")}</td><td>${esc(l.plate||"—")}</td>
     <td>${l.rfid?`<span class="badge b-warn"><i class="ti ti-nfc"></i> ${esc(l.rfid)}</span>`:"—"}</td>
-    <td><button class="btn btn-navy btn-sm" onclick="openCheckout('${l._id}')"><i class="ti ti-door-exit"></i> Check-out</button></td></tr>`).join("")+`</tbody></table></div>`;
+    <td><button class="btn btn-navy btn-sm" onclick="event.stopPropagation();openCheckout('${l._id}')"><i class="ti ti-door-exit"></i> Check-out</button></td></tr>`).join("")+`</tbody></table></div>`;
 }
 function coSearch(){
   const v=(document.getElementById("co-rfid").value||"").trim();
@@ -809,7 +813,7 @@ function renderOnsite(){
   const el=document.getElementById("onsite-list");
   if(!_open.length){el.innerHTML='<div style="text-align:center;color:var(--grey);padding:14px">— ไม่มีผู้อยู่ในโรงงาน —</div>';return;}
   el.innerHTML=`<table><thead><tr><th></th><th>ชื่อ</th><th>บริษัท</th><th>กลุ่ม</th><th>เข้า</th><th>รถ / สินค้า</th><th>RFID</th><th>พบ</th></tr></thead><tbody>`+
-  _open.map(l=>`<tr>
+  _open.map(l=>`<tr class="rowclick" onclick="showLogDetail('${l._id}')">
     <td>${l.photo?`<img class="tphoto" src="${esc(l.photo)}">`:""}</td>
     <td><b>${esc(l.name)}</b>${l.vpNo?`<br><span style="font-size:10.5px;color:var(--grey)">${esc(l.vpNo)}</span>`:""}${l.cardId?`<br><span style="font-size:10.5px;color:var(--grey)">${esc(l.cardId)}</span>`:""}</td>
     <td>${esc(l.co||"")}</td>
@@ -831,7 +835,7 @@ async function loadHistory(){
     if(!_hist.length){el.innerHTML="— ไม่มีข้อมูลวันที่ "+d+" —";return;}
     el.innerHTML=`<div style="font-size:12px;color:var(--grey);margin-bottom:8px">วันที่ ${d} · ${_hist.length} รายการ · ยังไม่ออก ${_hist.filter(l=>l.status==="in").length} คน</div>
     <table><thead><tr><th>ชื่อ</th><th>บริษัท</th><th>กลุ่ม</th><th>เข้า</th><th>ออก</th><th>รถ</th><th>สินค้า</th><th>RFID</th><th>รปภ.</th></tr></thead><tbody>`+
-    _hist.map(l=>`<tr><td><b>${esc(l.name)}</b>${l.vpNo?" · "+esc(l.vpNo):""}${l.cardId?" · "+esc(l.cardId):""}</td>
+    _hist.map(l=>`<tr class="rowclick" onclick="showLogDetail('${l._id}')"><td><b>${esc(l.name)}</b>${l.vpNo?" · "+esc(l.vpNo):""}${l.cardId?" · "+esc(l.cardId):""}</td>
     <td>${esc(l.co||"")}</td><td><span class="badge ${GROUP_BADGE[l.group]||"b-info"}">${GROUP_TH[l.group]||l.group}</span></td>
     <td>${esc(l.inTime||"")}</td><td>${l.status==="in"?'<span class="pill-in">ยังอยู่</span>':esc(l.outTime||"")}</td>
     <td>${esc(l.plate||"—")}</td><td>${esc(l.cargoType||"—")}</td>
@@ -973,6 +977,68 @@ function printPoster(){
       const img=w.document.querySelector("#posterqr img, #posterqr canvas");if(img){img.style.width="72mm";img.style.height="72mm";}
       w.__ready();
     }}catch(e){}},120);
+}
+</script>
+<script>
+/* ═══ v1.2: Record detail popup (Check-out / ในโรงงาน / ประวัติ) ═══ */
+function _findLog(id){return _open.find(x=>x._id===id)||_hist.find(x=>x._id===id)||null;}
+function showLogDetail(id){
+  const l=_findLog(id);if(!l)return;
+  const isIn=l.status==="in";
+  const row=(k,v)=>v?`<div class="dl">${k}</div><div class="dv">${v}</div>`:"";
+  showModal(`
+  <h3><i class="ti ti-id-badge-2"></i> รายละเอียดการเข้า-ออก</h3>
+  <div class="person" style="margin-bottom:4px">
+    ${l.photo?`<img class="pphoto" src="${esc(l.photo)}" style="width:96px;height:96px">`:`<div class="pphoto"></div>`}
+    <div style="flex:1">
+      <div class="pname" style="font-size:17px">${esc(l.name)}</div>
+      <div class="pmeta">${esc(l.co||"")}</div>
+      <div style="margin-top:5px" class="rowflex">
+        <span class="badge ${GROUP_BADGE[l.group]||"b-info"}">${GROUP_TH[l.group]||l.group}</span>
+        ${isIn?'<span class="pill-in">อยู่ในโรงงาน</span>':'<span class="badge b-info">ออกแล้ว</span>'}
+      </div>
+    </div>
+  </div>
+  <div class="dgrid">
+    ${row("วันที่",esc(l.date))}
+    ${row("เวลาเข้า",esc(l.inTime)+" น."+(l.guardIn?` <span style="color:var(--grey);font-weight:400">(รปภ. ${esc((l.guardIn||"").split("@")[0])})</span>`:""))}
+    ${row("เวลาออก",l.outTime?esc(l.outTime)+" น."+(l.guardOut?` <span style="color:var(--grey);font-weight:400">(รปภ. ${esc((l.guardOut||"").split("@")[0])})</span>`:""):(isIn?"—":""))}
+    ${row("เลขบัตร/ใบผ่าน",esc(l.cardId||l.vpNo||""))}
+    ${row("ตำแหน่ง",esc(l.posLabel||""))}
+    ${row("เลขบัตร ปชช.",esc(l.idno||""))}
+    ${row("ทะเบียนรถ",esc(l.plate||""))}
+    ${row("บัตรผ่านรถ",esc(l.vehiclePassNo||""))}
+    ${row("สินค้าที่นำส่ง",esc(l.cargoType||""))}
+    ${row("RFID",l.rfid?esc(l.rfid)+(l.rfidReturnMode?` <span style="color:var(--grey);font-weight:400">(คืนแล้ว: ${esc(l.rfidReturnMode)})</span>`:(isIn?' <span style="color:var(--red)">— ยังไม่คืน</span>':"")):"")}
+    ${row("มาพบ",esc(l.contact||""))}
+    <div id="dx-extra" style="display:contents"></div>
+  </div>
+  <div class="rowflex" style="justify-content:flex-end;margin-top:16px">
+    <button class="btn btn-out" onclick="closeModal()">ปิด</button>
+    <span id="dx-actions"></span>
+    ${isIn?`<button class="btn btn-navy" onclick="closeModal();openCheckout('${l._id}')"><i class="ti ti-door-exit"></i> Check-out</button>`:""}
+  </div>`);
+  loadLogExtra(l);
+}
+async function loadLogExtra(l){
+  try{
+    const row=(k,v)=>v?`<div class="dl">${k}</div><div class="dv">${v}</div>`:"";
+    if(l.group==="contractor"||l.group==="delivery"){
+      if(!l.refId)return;
+      const s=await db.collection("registrations").doc(l.refId).get();if(!s.exists)return;
+      const r=s.data();
+      const ex=document.getElementById("dx-extra");
+      if(ex)ex.innerHTML=row("ประเภทบัตร",esc(r.type||""))+row("บัตรหมดอายุ",esc(r.cardExpiry||""))+row("เบอร์โทร",esc(r.tel||r.phone||""));
+    }else{
+      if(!l.refId)return;
+      const s=await db.collection("gate_visitors").doc(l.refId).get();if(!s.exists)return;
+      const v=s.data();
+      const ex=document.getElementById("dx-extra");
+      if(ex)ex.innerHTML=row("เบอร์โทร",esc(v.tel||""))+row("แผนกที่ติดต่อ",esc(v.contactDept||""))+row("วัตถุประสงค์",esc(v.purpose||""))+row("เหตุผลบัตรชั่วคราว",esc(v.reason||""))+row("แผนก (พนักงาน)",esc(v.dept||""));
+      const ac=document.getElementById("dx-actions");
+      if(ac)ac.innerHTML=`<button class="btn btn-out" onclick='printVisitorPass(${JSON.stringify(v).replace(/'/g,"&#39;")})'><i class="ti ti-printer"></i> พิมพ์ใบผ่านซ้ำ</button>`;
+    }
+  }catch(e){}
 }
 </script>
 </body>
