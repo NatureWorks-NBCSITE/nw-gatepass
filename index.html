@@ -105,7 +105,7 @@ tr.rowclick{cursor:pointer}tr.rowclick:hover td{background:#F2F8FC}
 <div class="screen active" id="s-home">
   <div class="home-logo">
     <img src="https://kannikarthaicharoen-stack.github.io/nw-ctms/logo.png" alt="NatureWorks">
-    <span class="vbadge" id="ver-badge">v1.5</span>
+    <span class="vbadge" id="ver-badge">v1.6</span>
   </div>
   <div class="home-title">Gate Pass Control</div>
   <div class="home-sub">ระบบควบคุมการผ่านเข้า–ออก ป้อมรักษาความปลอดภัย · NBC Plant</div>
@@ -263,12 +263,19 @@ tr.rowclick{cursor:pointer}tr.rowclick:hover td{background:#F2F8FC}
     <div class="tabpane" id="tp-history">
       <div class="card">
         <div class="rowflex">
-          <div><label>วันที่</label><input type="date" id="h-date"></div>
+          <div><label>ตั้งแต่วันที่ (ตัดเวลา 00:00 น.)</label><input type="date" id="h-d1"></div>
+          <div><label>ถึงวันที่ (รวมทั้งวัน)</label><input type="date" id="h-d2"></div>
           <button class="btn btn-navy" style="margin-top:18px" onclick="loadHistory()"><i class="ti ti-search"></i> แสดง</button>
-          <button class="btn btn-out" style="margin-top:18px" onclick="exportCSV()"><i class="ti ti-file-spreadsheet"></i> Export CSV</button>
+          <button class="btn btn-out" style="margin-top:18px" onclick="exportCSV()"><i class="ti ti-file-spreadsheet"></i> Export รายละเอียด</button>
+          <button class="btn btn-teal" style="margin-top:18px" onclick="exportMH()"><i class="ti ti-clock-hour-4"></i> Export ชั่วโมงทำงาน</button>
         </div>
       </div>
-      <div class="card tscroll"><div id="hist-list">เลือกวันที่แล้วกดแสดง</div></div>
+      <div class="card tscroll" id="mh-card" style="display:none">
+        <b style="font-size:14px"><i class="ti ti-clock-hour-4"></i> ชั่วโมงทำงานผู้รับเหมา (Man-hours) — แยกประเภท × รายเดือน</b>
+        <div class="hint" style="margin-bottom:8px">นับเฉพาะผู้ถือบัตรอบรม CTMS ที่ Check-out แล้ว · ตัดรอบเดือนวันที่ 1 – วันสุดท้ายของเดือน เวลา 00:00 น. · รายการที่ข้ามเที่ยงคืนนับถึง 24:00 ของวันเข้า</div>
+        <div id="mh-table"></div>
+      </div>
+      <div class="card tscroll"><div id="hist-list">เลือกช่วงวันที่แล้วกดแสดง</div></div>
     </div>
 
     <!-- TAB: SETTINGS -->
@@ -319,7 +326,7 @@ tr.rowclick{cursor:pointer}tr.rowclick:hover td{background:#F2F8FC}
 const firebaseConfig={apiKey:"AIzaSyCKASP9RLRFgvdsM98cgbK3gJQiYQDqFC4",authDomain:"nw-contractor-training.firebaseapp.com",projectId:"nw-contractor-training",storageBucket:"nw-contractor-training.firebasestorage.app",messagingSenderId:"543139137624",appId:"1:543139137624:web:04b331bd7187046352222d"};
 firebase.initializeApp(firebaseConfig);const db=firebase.firestore();
 const CLD_CLOUD="zjtygb1h",CLD_PRESET="nw_ctms_unsigned";
-const APP_VER="v1.5";document.getElementById("ver-badge").textContent=APP_VER;
+const APP_VER="v1.6";document.getElementById("ver-badge").textContent=APP_VER;
 const POS_LABEL={GEN:"พนักงานทั่วไป / General",SAF:"จป.หัวหน้างาน / Safety Sup.",FWM:"Fire Watchman",DRV:"พนักงานขับรถขนส่ง / Transport Driver",SUP:"พนักงานสนับสนุน / Supporting Staff"};
 const GROUP_TH={contractor:"ผู้รับเหมา",visitor:"ผู้มาติดต่อ",delivery:"รถขนส่ง",tempemp:"พนักงาน(ชั่วคราว)"};
 const DEPTS=["Administration / ธุรการ","HR / ทรัพยากรบุคคล","EHS / ความปลอดภัยฯ","Production / ฝ่ายผลิต","Maintenance / ซ่อมบำรุง","Engineering / วิศวกรรม","QA-QC / Laboratory","Warehouse & Logistics / คลังสินค้า","Procurement / จัดซื้อ","IT / เทคโนโลยีสารสนเทศ","Finance & Accounting / บัญชีการเงิน"];
@@ -422,7 +429,7 @@ async function doLogin(){
 function enterGuard(){
   document.getElementById("tb-user").textContent=SESSION.email;
   showScreen("s-guard");startListeners();
-  document.getElementById("h-date").value=today();
+  document.getElementById("h-d2").value=today();document.getElementById("h-d1").value=today().slice(0,8)+"01";
   document.getElementById("cal-ox").value=localStorage.getItem("gp_ox")||"0";
   document.getElementById("cal-oy").value=localStorage.getItem("gp_oy")||"0";
   qsYear();cqYear();loadContacts();
@@ -826,30 +833,81 @@ function renderOnsite(){
 
 /* ═══════════ HISTORY + CSV ═══════════ */
 async function loadHistory(){
-  const d=document.getElementById("h-date").value||today();
-  const el=document.getElementById("hist-list");el.innerHTML="กำลังโหลด...";
+  const d1=document.getElementById("h-d1").value,d2=document.getElementById("h-d2").value;
+  const el=document.getElementById("hist-list");
+  if(!d1||!d2){showToast("⚠ เลือกวันเริ่มต้นและวันสิ้นสุด");return;}
+  if(d1>d2){showToast("⚠ วันเริ่มต้นต้องไม่เกินวันสิ้นสุด");return;}
+  el.innerHTML="กำลังโหลด...";
   try{
-    const q=await db.collection("gate_logs").where("date","==",d).get();
+    const q=await db.collection("gate_logs").where("date",">=",d1).where("date","<=",d2).get();
     _hist=q.docs.map(x=>({_id:x.id,...x.data()}));
-    _hist.sort((a,b)=>(a.inTime||"").localeCompare(b.inTime||""));
-    if(!_hist.length){el.innerHTML="— ไม่มีข้อมูลวันที่ "+d+" —";return;}
-    el.innerHTML=`<div style="font-size:12px;color:var(--grey);margin-bottom:8px">วันที่ ${d} · ${_hist.length} รายการ · ยังไม่ออก ${_hist.filter(l=>l.status==="in").length} คน</div>
-    <table><thead><tr><th>ชื่อ</th><th>บริษัท</th><th>กลุ่ม</th><th>เข้า</th><th>ออก</th><th>รถ</th><th>สินค้า</th><th>RFID</th><th>รปภ.</th></tr></thead><tbody>`+
-    _hist.map(l=>`<tr class="rowclick" onclick="showLogDetail('${l._id}')"><td><b>${esc(l.name)}</b>${l.vpNo?" · "+esc(l.vpNo):""}${l.cardId?" · "+esc(l.cardId):""}</td>
+    _hist.sort((a,b)=>(a.date+a.inTime).localeCompare(b.date+b.inTime));
+    if(!_hist.length){el.innerHTML=`— ไม่มีข้อมูลช่วง ${d1} ถึง ${d2} —`;document.getElementById("mh-card").style.display="none";return;}
+    el.innerHTML=`<div style="font-size:12px;color:var(--grey);margin-bottom:8px">ช่วง ${d1} → ${d2} · ${_hist.length} รายการ · ยังไม่ออก ${_hist.filter(l=>l.status==="in").length} คน</div>
+    <table><thead><tr><th>วันที่</th><th>ชื่อ</th><th>บริษัท</th><th>กลุ่ม</th><th>เข้า</th><th>ออก</th><th>รถ</th><th>สินค้า</th><th>RFID</th><th>รปภ.</th></tr></thead><tbody>`+
+    _hist.map(l=>`<tr class="rowclick" onclick="showLogDetail('${l._id}')"><td>${esc(l.date||"")}</td><td><b>${esc(l.name)}</b>${l.vpNo?" · "+esc(l.vpNo):""}${l.cardId?" · "+esc(l.cardId):""}</td>
     <td>${esc(l.co||"")}</td><td><span class="badge ${GROUP_BADGE[l.group]||"b-info"}">${GROUP_TH[l.group]||l.group}</span></td>
     <td>${esc(l.inTime||"")}</td><td>${l.status==="in"?'<span class="pill-in">ยังอยู่</span>':esc(l.outTime||"")}</td>
     <td>${esc(l.plate||"—")}</td><td>${esc(l.cargoType||"—")}</td>
     <td>${l.rfid?esc(l.rfid)+(l.rfidReturnMode&&String(l.rfidReturnMode).startsWith("manual")?" ⚠":""):"—"}</td>
     <td style="font-size:10.5px">${esc((l.guardIn||"").split("@")[0])}</td></tr>`).join("")+`</tbody></table>`;
+    renderManhours();
   }catch(e){el.innerHTML="⚠ "+e.message;}
+}
+/* ── Man-hours: ผู้ถือบัตร CTMS ที่ปิดรายการแล้ว · ตัดเที่ยงคืน · แยก ตำแหน่ง × เดือน ── */
+const MH_POS=["GEN","SAF","FWM","DRV","SUP"];
+function _mins(t){const p=(t||"").split(":");return (+p[0]||0)*60+(+p[1]||0);}
+function logHours(l){
+  if(!l.outTime)return 0;
+  const i=_mins(l.inTime),o=_mins(l.outTime);
+  const m=o>=i?(o-i):(1440-i); // ข้ามเที่ยงคืน → นับถึง 24:00 ของวันเข้า
+  return m/60;
+}
+let _mh=null;
+function renderManhours(){
+  const logs=_hist.filter(l=>l.cardId);
+  const card=document.getElementById("mh-card");
+  if(!logs.length){card.style.display="none";_mh=null;return;}
+  const months={};let skipped=0;
+  logs.forEach(l=>{
+    if(!l.outTime){skipped++;return;}
+    const mo=(l.date||"").slice(0,7);if(!mo)return;
+    months[mo]=months[mo]||{GEN:0,SAF:0,FWM:0,DRV:0,SUP:0,_n:0};
+    const pos=MH_POS.includes(l.position)?l.position:"GEN";
+    months[mo][pos]+=logHours(l);months[mo]._n++;
+  });
+  const keys=Object.keys(months).sort();
+  _mh={months,keys};
+  const f=x=>x?x.toFixed(1):"–";
+  let tot={GEN:0,SAF:0,FWM:0,DRV:0,SUP:0,_n:0};
+  let rows=keys.map(mo=>{
+    const m=months[mo];const sum=MH_POS.reduce((s,p)=>s+m[p],0);
+    MH_POS.forEach(p=>tot[p]+=m[p]);tot._n+=m._n;
+    return `<tr><td><b>${mo}</b></td>${MH_POS.map(p=>`<td style="text-align:right">${f(m[p])}</td>`).join("")}<td style="text-align:right"><b>${sum.toFixed(1)}</b></td><td style="text-align:right">${m._n}</td></tr>`;
+  }).join("");
+  const totSum=MH_POS.reduce((s,p)=>s+tot[p],0);
+  card.style.display="block";
+  document.getElementById("mh-table").innerHTML=`
+  <table><thead><tr><th>เดือน</th><th style="text-align:right">GEN<br>ทั่วไป</th><th style="text-align:right">SAF<br>จป.</th><th style="text-align:right">FWM<br>Fire Watch</th><th style="text-align:right">DRV<br>ขับรถขนส่ง</th><th style="text-align:right">SUP<br>สนับสนุน</th><th style="text-align:right">รวม (ชม.)</th><th style="text-align:right">จำนวนครั้ง</th></tr></thead>
+  <tbody>${rows}<tr style="background:#F0FBFA"><td><b>รวมทั้งหมด</b></td>${MH_POS.map(p=>`<td style="text-align:right"><b>${f(tot[p])}</b></td>`).join("")}<td style="text-align:right"><b>${totSum.toFixed(1)}</b></td><td style="text-align:right"><b>${tot._n}</b></td></tr></tbody></table>
+  ${skipped?`<div class="hint" style="margin-top:6px">⚠ ไม่นับ ${skipped} รายการที่ยังไม่ Check-out</div>`:""}`;
+}
+function exportMH(){
+  if(!_mh||!_mh.keys.length){showToast("⚠ กดแสดงข้อมูลก่อน (และต้องมีข้อมูลผู้รับเหมาในช่วงที่เลือก)");return;}
+  const rows=[["Month","GEN (hrs)","SAF (hrs)","FWM (hrs)","DRV (hrs)","SUP (hrs)","Total (hrs)","Entries"]];
+  _mh.keys.forEach(mo=>{const m=_mh.months[mo];const sum=MH_POS.reduce((s,p)=>s+m[p],0);
+    rows.push([mo,...MH_POS.map(p=>m[p].toFixed(2)),sum.toFixed(2),m._n]);});
+  const csv="\ufeff"+rows.map(r=>r.map(c=>`"${String(c)}"`).join(",")).join("\r\n");
+  const d1=document.getElementById("h-d1").value,d2=document.getElementById("h-d2").value;
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=`Contractor_Manhours_${d1}_to_${d2}.csv`;a.click();
 }
 function exportCSV(){
   if(!_hist.length){showToast("⚠ กดแสดงข้อมูลก่อน");return;}
-  const d=document.getElementById("h-date").value||today();
+  const d1=document.getElementById("h-d1").value,d2=document.getElementById("h-d2").value;
   const rows=[["Date","Name","Company","Group","ID No.","Card/VP","In","Out","Plate","Cargo","RFID","RFID Return","Guard In","Guard Out"]];
   _hist.forEach(l=>rows.push([l.date,l.name,l.co||"",GROUP_TH[l.group]||l.group,l.idno||"",l.cardId||l.vpNo||"",l.inTime||"",l.outTime||"",l.plate||"",l.cargoType||"",l.rfid||"",l.rfidReturnMode||"",l.guardIn||"",l.guardOut||""]));
   const csv="\ufeff"+rows.map(r=>r.map(c=>`"${String(c==null?"":c).replace(/"/g,'""')}"`).join(",")).join("\r\n");
-  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=`GatePass_${d}.csv`;a.click();
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=`GatePass_${d1}_to_${d2}.csv`;a.click();
 }
 
 /* ═══════════ INIT ═══════════ */
