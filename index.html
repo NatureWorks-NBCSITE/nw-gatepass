@@ -105,7 +105,7 @@ tr.rowclick{cursor:pointer}tr.rowclick:hover td{background:#F2F8FC}
 <div class="screen active" id="s-home">
   <div class="home-logo">
     <img src="https://kannikarthaicharoen-stack.github.io/nw-ctms/logo.png" alt="NatureWorks">
-    <span class="vbadge" id="ver-badge">v1.7</span>
+    <span class="vbadge" id="ver-badge">v1.8</span>
   </div>
   <div class="home-title">Gate Pass Control</div>
   <div class="home-sub">ระบบควบคุมการผ่านเข้า–ออก ป้อมรักษาความปลอดภัย · NBC Plant</div>
@@ -205,9 +205,12 @@ tr.rowclick{cursor:pointer}tr.rowclick:hover td{background:#F2F8FC}
       <div class="card">
         <div class="rowflex" style="justify-content:space-between;margin-bottom:10px">
           <b style="font-size:14px"><i class="ti ti-qrcode"></i> สแกน QR บัตรผู้รับเหมา / บัตรผ่าน</b>
-          <button class="btn btn-sm btn-teal" id="cam-btn" onclick="toggleCam()"><i class="ti ti-camera"></i> เปิดกล้อง</button>
+          <span class="rowflex"><button class="btn btn-sm btn-teal" id="cam-btn" onclick="toggleCam()"><i class="ti ti-camera"></i> สแกนสด</button>
+          <button class="btn btn-sm btn-navy" onclick="document.getElementById('qr-photo').click()"><i class="ti ti-photo-scan"></i> ถ่ายรูป QR</button></span>
+          <input type="file" id="qr-photo" accept="image/*" capture="environment" style="display:none" onchange="scanQRFile(this)">
         </div>
-        <div id="qr-reader"></div>
+        <div id="qr-reader"></div><div id="qr-file-reader" style="display:none"></div>
+        <div class="hint" style="text-align:center;margin-top:6px">สแกนสด: ถือ QR ห่างกล้อง ~10–15 ซม. ให้อยู่กลางกรอบ นิ่ง 1–2 วินาที · ถ้าอ่านไม่ติด ใช้ปุ่ม "ถ่ายรูป QR" ถ่ายใกล้ๆ ชัดๆ แล้วระบบถอดรหัสจากภาพ</div>
         <div class="divh"></div>
         <label><i class="ti ti-scan"></i> เครื่องสแกน USB — ยิงที่ช่องนี้ (อ่านรหัสเต็มและค้นหาให้อัตโนมัติ)</label>
         <input id="manual-code" placeholder="เคอร์เซอร์รออยู่ที่นี่ — ยิงสแกนเนอร์ได้เลย..." onkeydown="if(event.key==='Enter')manualLookup()" style="margin-bottom:12px">
@@ -326,7 +329,7 @@ tr.rowclick{cursor:pointer}tr.rowclick:hover td{background:#F2F8FC}
 const firebaseConfig={apiKey:"AIzaSyCKASP9RLRFgvdsM98cgbK3gJQiYQDqFC4",authDomain:"nw-contractor-training.firebaseapp.com",projectId:"nw-contractor-training",storageBucket:"nw-contractor-training.firebasestorage.app",messagingSenderId:"543139137624",appId:"1:543139137624:web:04b331bd7187046352222d"};
 firebase.initializeApp(firebaseConfig);const db=firebase.firestore();
 const CLD_CLOUD="zjtygb1h",CLD_PRESET="nw_ctms_unsigned";
-const APP_VER="v1.7";document.getElementById("ver-badge").textContent=APP_VER;
+const APP_VER="v1.8";document.getElementById("ver-badge").textContent=APP_VER;
 const POS_LABEL={GEN:"พนักงานทั่วไป / General",SAF:"จป.หัวหน้างาน / Safety Sup.",FWM:"Fire Watchman",DRV:"พนักงานขับรถขนส่ง / Transport Driver",SUP:"พนักงานสนับสนุน / Supporting Staff"};
 const GROUP_TH={contractor:"ผู้รับเหมา",visitor:"ผู้มาติดต่อ",delivery:"รถขนส่ง",tempemp:"พนักงาน(ชั่วคราว)"};
 const DEPTS=["Administration / ธุรการ","HR / ทรัพยากรบุคคล","EHS / ความปลอดภัยฯ","Production / ฝ่ายผลิต","Maintenance / ซ่อมบำรุง","Engineering / วิศวกรรม","QA-QC / Laboratory","Warehouse & Logistics / คลังสินค้า","Procurement / จัดซื้อ","IT / เทคโนโลยีสารสนเทศ","Finance & Accounting / บัญชีการเงิน"];
@@ -544,13 +547,27 @@ async function submitReg(){
 function toggleCam(){CAM_ON?stopCam():startCam();}
 function startCam(){
   QRSCAN=new Html5Qrcode("qr-reader",{experimentalFeatures:{useBarCodeDetectorIfSupported:true},verbose:false});
-  const cfg={fps:10,
-    qrbox:(w,hh)=>{const s=Math.floor(Math.min(w,hh)*0.8);return{width:s,height:s};},
-    videoConstraints:{facingMode:"environment",width:{ideal:1920},height:{ideal:1080},advanced:[{focusMode:"continuous"}]}};
-  QRSCAN.start({facingMode:"environment"},cfg,
-    txt=>{QRSCAN.pause(true);handleCode(txt);setTimeout(()=>{try{QRSCAN.resume();}catch(e){}},2500);},
-    ()=>{}).then(()=>{CAM_ON=true;document.getElementById("cam-btn").innerHTML='<i class="ti ti-camera-off"></i> ปิดกล้อง';})
-    .catch(e=>showToast("⚠ เปิดกล้องไม่ได้: "+e));
+  const onScan=txt=>{QRSCAN.pause(true);handleCode(txt);setTimeout(()=>{try{QRSCAN.resume();}catch(e){}},2500);};
+  const camOK=()=>{CAM_ON=true;document.getElementById("cam-btn").innerHTML='<i class="ti ti-camera-off"></i> ปิดกล้อง';};
+  const full={fps:10,qrbox:(w,hh)=>{const s=Math.floor(Math.min(w,hh)*0.8);return{width:s,height:s};},
+    videoConstraints:{facingMode:"environment",width:{ideal:1920},height:{ideal:1080}}};
+  const basic={fps:10,qrbox:250};
+  QRSCAN.start({facingMode:"environment"},full,onScan,()=>{}).then(camOK)
+    .catch(()=>QRSCAN.start({facingMode:"environment"},basic,onScan,()=>{}).then(camOK)
+    .catch(e=>showToast("⚠ เปิดกล้องไม่ได้: "+e)));
+}
+/* โหมดสำรอง: ถ่ายภาพนิ่งความละเอียดเต็ม แล้วถอดรหัสจากรูป (โฟกัส/แสงดีกว่า live มาก) */
+async function scanQRFile(inp){
+  const f=inp.files[0];if(!f)return;
+  showToast("🔍 กำลังอ่าน QR จากรูป...");
+  stopCam();
+  try{
+    const sc=new Html5Qrcode("qr-file-reader",{experimentalFeatures:{useBarCodeDetectorIfSupported:true},verbose:false});
+    const txt=await sc.scanFile(f,false);
+    try{sc.clear();}catch(e){}
+    handleCode(txt);
+  }catch(e){showToast("⚠ อ่าน QR จากรูปไม่สำเร็จ — ถ่ายใหม่ให้ QR ใหญ่เต็มเฟรมและชัด ไม่ย้อนแสง");}
+  inp.value="";
 }
 function stopCam(){if(QRSCAN&&CAM_ON){QRSCAN.stop().catch(()=>{});CAM_ON=false;const b=document.getElementById("cam-btn");if(b)b.innerHTML='<i class="ti ti-camera"></i> เปิดกล้อง';}}
 function manualLookup(){const v=(document.getElementById("manual-code").value||"").trim();if(v)handleCode(v);}
