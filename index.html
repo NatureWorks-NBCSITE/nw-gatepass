@@ -105,7 +105,7 @@ tr.rowclick{cursor:pointer}tr.rowclick:hover td{background:#F2F8FC}
 <div class="screen active" id="s-home">
   <div class="home-logo">
     <img src="https://kannikarthaicharoen-stack.github.io/nw-ctms/logo.png" alt="NatureWorks">
-    <span class="vbadge" id="ver-badge">v1.6</span>
+    <span class="vbadge" id="ver-badge">v1.7</span>
   </div>
   <div class="home-title">Gate Pass Control</div>
   <div class="home-sub">ระบบควบคุมการผ่านเข้า–ออก ป้อมรักษาความปลอดภัย · NBC Plant</div>
@@ -280,7 +280,7 @@ tr.rowclick{cursor:pointer}tr.rowclick:hover td{background:#F2F8FC}
 
     <!-- TAB: SETTINGS -->
     <div class="tabpane" id="tp-settings">
-      <div class="card">
+      <div class="card" id="set-cal" style="display:none">
         <b style="font-size:14px"><i class="ti ti-printer"></i> ปรับตำแหน่งพิมพ์ทับกระดาษ A5 (Calibration)</b>
         <div class="hint" style="margin-bottom:10px">พิมพ์หน้าทดสอบลงกระดาษใบผ่านจริง แล้วปรับ Offset จนกรอบทดสอบทาบสนิทกับเส้นตารางบนกระดาษ (ค่าบันทึกในเครื่องนี้)</div>
         <div class="grid3">
@@ -290,7 +290,7 @@ tr.rowclick{cursor:pointer}tr.rowclick:hover td{background:#F2F8FC}
         </div>
         <button class="btn btn-out" onclick="printCalTest()"><i class="ti ti-focus-2"></i> พิมพ์หน้าทดสอบ</button>
       </div>
-      <div class="card">
+      <div class="card" id="set-contacts" style="display:none">
         <b style="font-size:14px"><i class="ti ti-address-book"></i> รายชื่อพนักงาน NatureWorks (Autocomplete ช่อง "ผู้ที่มาพบ")</b>
         <div class="hint" style="margin-bottom:8px">หนึ่งบรรทัดต่อหนึ่งคน รูปแบบ: <b>ชื่อ-นามสกุล, แผนก</b> — หน้าลงทะเบียนจะแนะนำชื่อและเติมแผนกให้อัตโนมัติ</div>
         <textarea id="gp-contacts" rows="7" placeholder="Kannikar Thaicharoen, EHS / ความปลอดภัยและสิ่งแวดล้อม&#10;Sirisak Charoenkitpeeti, EHS / ความปลอดภัยและสิ่งแวดล้อม"></textarea>
@@ -326,7 +326,7 @@ tr.rowclick{cursor:pointer}tr.rowclick:hover td{background:#F2F8FC}
 const firebaseConfig={apiKey:"AIzaSyCKASP9RLRFgvdsM98cgbK3gJQiYQDqFC4",authDomain:"nw-contractor-training.firebaseapp.com",projectId:"nw-contractor-training",storageBucket:"nw-contractor-training.firebasestorage.app",messagingSenderId:"543139137624",appId:"1:543139137624:web:04b331bd7187046352222d"};
 firebase.initializeApp(firebaseConfig);const db=firebase.firestore();
 const CLD_CLOUD="zjtygb1h",CLD_PRESET="nw_ctms_unsigned";
-const APP_VER="v1.6";document.getElementById("ver-badge").textContent=APP_VER;
+const APP_VER="v1.7";document.getElementById("ver-badge").textContent=APP_VER;
 const POS_LABEL={GEN:"พนักงานทั่วไป / General",SAF:"จป.หัวหน้างาน / Safety Sup.",FWM:"Fire Watchman",DRV:"พนักงานขับรถขนส่ง / Transport Driver",SUP:"พนักงานสนับสนุน / Supporting Staff"};
 const GROUP_TH={contractor:"ผู้รับเหมา",visitor:"ผู้มาติดต่อ",delivery:"รถขนส่ง",tempemp:"พนักงาน(ชั่วคราว)"};
 const DEPTS=["Administration / ธุรการ","HR / ทรัพยากรบุคคล","EHS / ความปลอดภัยฯ","Production / ฝ่ายผลิต","Maintenance / ซ่อมบำรุง","Engineering / วิศวกรรม","QA-QC / Laboratory","Warehouse & Logistics / คลังสินค้า","Procurement / จัดซื้อ","IT / เทคโนโลยีสารสนเทศ","Finance & Accounting / บัญชีการเงิน"];
@@ -432,6 +432,9 @@ function enterGuard(){
   document.getElementById("h-d2").value=today();document.getElementById("h-d1").value=today().slice(0,8)+"01";
   document.getElementById("cal-ox").value=localStorage.getItem("gp_ox")||"0";
   document.getElementById("cal-oy").value=localStorage.getItem("gp_oy")||"0";
+  const adm=SESSION.role==="ehs";
+  document.getElementById("set-cal").style.display=adm?"block":"none";
+  document.getElementById("set-contacts").style.display=adm?"block":"none";
   qsYear();cqYear();loadContacts();
 }
 function setTab(t){
@@ -540,8 +543,11 @@ async function submitReg(){
 /* ═══════════ SCAN (Contractor QR: NBC|cardId|idno|POS) ═══════════ */
 function toggleCam(){CAM_ON?stopCam():startCam();}
 function startCam(){
-  QRSCAN=new Html5Qrcode("qr-reader");
-  QRSCAN.start({facingMode:"environment"},{fps:10,qrbox:{width:230,height:230}},
+  QRSCAN=new Html5Qrcode("qr-reader",{experimentalFeatures:{useBarCodeDetectorIfSupported:true},verbose:false});
+  const cfg={fps:10,
+    qrbox:(w,hh)=>{const s=Math.floor(Math.min(w,hh)*0.8);return{width:s,height:s};},
+    videoConstraints:{facingMode:"environment",width:{ideal:1920},height:{ideal:1080},advanced:[{focusMode:"continuous"}]}};
+  QRSCAN.start({facingMode:"environment"},cfg,
     txt=>{QRSCAN.pause(true);handleCode(txt);setTimeout(()=>{try{QRSCAN.resume();}catch(e){}},2500);},
     ()=>{}).then(()=>{CAM_ON=true;document.getElementById("cam-btn").innerHTML='<i class="ti ti-camera-off"></i> ปิดกล้อง';})
     .catch(e=>showToast("⚠ เปิดกล้องไม่ได้: "+e));
@@ -796,7 +802,7 @@ async function doCheckout(logId,manualReason){
   const l=_open.find(x=>x._id===logId);if(!l)return;
   try{
     await db.collection("gate_logs").doc(logId).update({
-      status:"out",outTime:nowTime(),guardOut:SESSION.email,
+      status:"out",outTime:nowTime(),outDate:today(),guardOut:SESSION.email,
       rfidReturned:l.rfid?true:null,
       rfidReturnMode:l.rfid?(manualReason?("manual: "+manualReason):"tap"):null,
       outAt:firebase.firestore.FieldValue.serverTimestamp()
@@ -847,7 +853,7 @@ async function loadHistory(){
     <table><thead><tr><th>วันที่</th><th>ชื่อ</th><th>บริษัท</th><th>กลุ่ม</th><th>เข้า</th><th>ออก</th><th>รถ</th><th>สินค้า</th><th>RFID</th><th>รปภ.</th></tr></thead><tbody>`+
     _hist.map(l=>`<tr class="rowclick" onclick="showLogDetail('${l._id}')"><td>${esc(l.date||"")}</td><td><b>${esc(l.name)}</b>${l.vpNo?" · "+esc(l.vpNo):""}${l.cardId?" · "+esc(l.cardId):""}</td>
     <td>${esc(l.co||"")}</td><td><span class="badge ${GROUP_BADGE[l.group]||"b-info"}">${GROUP_TH[l.group]||l.group}</span></td>
-    <td>${esc(l.inTime||"")}</td><td>${l.status==="in"?'<span class="pill-in">ยังอยู่</span>':esc(l.outTime||"")}</td>
+    <td>${esc(l.inTime||"")}</td><td>${l.status==="in"?'<span class="pill-in">ยังอยู่</span>':(esc(l.outTime||"")+(l.outDate&&l.outDate!==l.date?`<br><span style="font-size:10px;color:var(--amber);font-weight:700">${esc(l.outDate)}</span>`:""))}</td>
     <td>${esc(l.plate||"—")}</td><td>${esc(l.cargoType||"—")}</td>
     <td>${l.rfid?esc(l.rfid)+(l.rfidReturnMode&&String(l.rfidReturnMode).startsWith("manual")?" ⚠":""):"—"}</td>
     <td style="font-size:10.5px">${esc((l.guardIn||"").split("@")[0])}</td></tr>`).join("")+`</tbody></table>`;
@@ -857,24 +863,38 @@ async function loadHistory(){
 /* ── Man-hours: ผู้ถือบัตร CTMS ที่ปิดรายการแล้ว · ตัดเที่ยงคืน · แยก ตำแหน่ง × เดือน ── */
 const MH_POS=["GEN","SAF","FWM","DRV","SUP"];
 function _mins(t){const p=(t||"").split(":");return (+p[0]||0)*60+(+p[1]||0);}
-function logHours(l){
-  if(!l.outTime)return 0;
-  const i=_mins(l.inTime),o=_mins(l.outTime);
-  const m=o>=i?(o-i):(1440-i); // ข้ามเที่ยงคืน → นับถึง 24:00 ของวันเข้า
-  return m/60;
+function _dayAdd(d,n){const a=d.split("-").map(Number);const x=new Date(Date.UTC(a[0],a[1]-1,a[2]+n));return x.toISOString().slice(0,10);}
+/* กระจายชั่วโมงเป็นรายวัน ตัดที่ 00:00 แล้วเข้าถังรายเดือนของวันนั้น */
+function hoursByMonth(l){
+  if(!l.outTime)return null;
+  const sd=l.date;if(!sd)return null;
+  const si=_mins(l.inTime),eo=_mins(l.outTime);
+  let ed=l.outDate||(eo>=si?sd:_dayAdd(sd,1)); // record เก่าไม่มี outDate: ออก<เข้า = ข้ามคืน 1 วัน
+  if(ed<sd)return null;
+  const out={};let cur=sd,i=0;
+  while(cur<=ed&&i++<64){
+    const from=cur===sd?si:0, to=cur===ed?eo:1440;
+    if(to>from){const mo=cur.slice(0,7);out[mo]=(out[mo]||0)+(to-from)/60;}
+    if(cur===ed)break;cur=_dayAdd(cur,1);
+  }
+  return out;
 }
 let _mh=null;
 function renderManhours(){
+  const card=document.getElementById("mh-card");card.style.display="block";
   const logs=_hist.filter(l=>l.cardId);
-  const card=document.getElementById("mh-card");
-  if(!logs.length){card.style.display="none";_mh=null;return;}
+  if(!logs.length){_mh=null;document.getElementById("mh-table").innerHTML='<div style="color:var(--grey);padding:8px 0">— ช่วงนี้ไม่มีข้อมูลผู้รับเหมา (ผู้ถือบัตรอบรม CTMS) — รายการผู้มาติดต่อ/Visitor ไม่ถูกนับใน Man-hours —</div>';return;}
   const months={};let skipped=0;
   logs.forEach(l=>{
-    if(!l.outTime){skipped++;return;}
-    const mo=(l.date||"").slice(0,7);if(!mo)return;
-    months[mo]=months[mo]||{GEN:0,SAF:0,FWM:0,DRV:0,SUP:0,_n:0};
+    const hb=hoursByMonth(l);
+    if(!hb){skipped++;return;}
     const pos=MH_POS.includes(l.position)?l.position:"GEN";
-    months[mo][pos]+=logHours(l);months[mo]._n++;
+    Object.keys(hb).forEach(mo=>{
+      months[mo]=months[mo]||{GEN:0,SAF:0,FWM:0,DRV:0,SUP:0,_n:0};
+      months[mo][pos]+=hb[mo];
+    });
+    const smo=(l.date||"").slice(0,7);
+    if(months[smo])months[smo]._n++;
   });
   const keys=Object.keys(months).sort();
   _mh={months,keys};
@@ -886,14 +906,14 @@ function renderManhours(){
     return `<tr><td><b>${mo}</b></td>${MH_POS.map(p=>`<td style="text-align:right">${f(m[p])}</td>`).join("")}<td style="text-align:right"><b>${sum.toFixed(1)}</b></td><td style="text-align:right">${m._n}</td></tr>`;
   }).join("");
   const totSum=MH_POS.reduce((s,p)=>s+tot[p],0);
-  card.style.display="block";
   document.getElementById("mh-table").innerHTML=`
   <table><thead><tr><th>เดือน</th><th style="text-align:right">GEN<br>ทั่วไป</th><th style="text-align:right">SAF<br>จป.</th><th style="text-align:right">FWM<br>Fire Watch</th><th style="text-align:right">DRV<br>ขับรถขนส่ง</th><th style="text-align:right">SUP<br>สนับสนุน</th><th style="text-align:right">รวม (ชม.)</th><th style="text-align:right">จำนวนครั้ง</th></tr></thead>
   <tbody>${rows}<tr style="background:#F0FBFA"><td><b>รวมทั้งหมด</b></td>${MH_POS.map(p=>`<td style="text-align:right"><b>${f(tot[p])}</b></td>`).join("")}<td style="text-align:right"><b>${totSum.toFixed(1)}</b></td><td style="text-align:right"><b>${tot._n}</b></td></tr></tbody></table>
   ${skipped?`<div class="hint" style="margin-top:6px">⚠ ไม่นับ ${skipped} รายการที่ยังไม่ Check-out</div>`:""}`;
 }
 function exportMH(){
-  if(!_mh||!_mh.keys.length){showToast("⚠ กดแสดงข้อมูลก่อน (และต้องมีข้อมูลผู้รับเหมาในช่วงที่เลือก)");return;}
+  if(!_hist.length){showToast("⚠ กดปุ่ม แสดง เพื่อโหลดข้อมูลก่อน");return;}
+  if(!_mh||!_mh.keys.length){showToast("⚠ ช่วงนี้ไม่มีข้อมูลผู้รับเหมา (บัตร CTMS) ที่ Check-out แล้ว — Visitor ไม่ถูกนับใน Man-hours");return;}
   const rows=[["Month","GEN (hrs)","SAF (hrs)","FWM (hrs)","DRV (hrs)","SUP (hrs)","Total (hrs)","Entries"]];
   _mh.keys.forEach(mo=>{const m=_mh.months[mo];const sum=MH_POS.reduce((s,p)=>s+m[p],0);
     rows.push([mo,...MH_POS.map(p=>m[p].toFixed(2)),sum.toFixed(2),m._n]);});
@@ -1043,7 +1063,7 @@ function showLogDetail(id){
   <div class="dgrid">
     ${row("วันที่",esc(l.date))}
     ${row("เวลาเข้า",esc(l.inTime)+" น."+(l.guardIn?` <span style="color:var(--grey);font-weight:400">(รปภ. ${esc((l.guardIn||"").split("@")[0])})</span>`:""))}
-    ${row("เวลาออก",l.outTime?esc(l.outTime)+" น."+(l.guardOut?` <span style="color:var(--grey);font-weight:400">(รปภ. ${esc((l.guardOut||"").split("@")[0])})</span>`:""):(isIn?"—":""))}
+    ${row("เวลาออก",l.outTime?esc(l.outTime)+" น."+(l.outDate&&l.outDate!==l.date?` <b style="color:var(--amber)">(${esc(l.outDate)})</b>`:"")+(l.guardOut?` <span style="color:var(--grey);font-weight:400">(รปภ. ${esc((l.guardOut||"").split("@")[0])})</span>`:""):(isIn?"—":""))}
     ${row("เลขบัตร/ใบผ่าน",esc(l.cardId||l.vpNo||""))}
     ${row("ตำแหน่ง",esc(l.posLabel||""))}
     ${row("เลขบัตร ปชช.",esc(l.idno||""))}
