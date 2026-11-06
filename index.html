@@ -119,6 +119,10 @@ table{font-size:14px}th{font-size:12.5px}
 .dgrid{font-size:14px}.dgrid .dl{font-size:12.5px}
 .typebtn .t1{font-size:14.5px}.typebtn .t2{font-size:11.5px}
 .toast{font-size:14.5px}
+.suggest{position:absolute;left:0;right:0;top:100%;background:#fff;border:1.5px solid var(--teal);border-top:none;border-radius:0 0 10px 10px;box-shadow:0 8px 18px rgba(18,58,102,.18);z-index:60;max-height:240px;overflow-y:auto;display:none}
+.suggest .sg{padding:10px 12px;cursor:pointer;border-bottom:1px solid #EFF5FA;font-size:14.5px;font-weight:600;color:var(--navy-d)}
+.suggest .sg small{display:block;color:var(--grey);font-weight:500;font-size:11.5px}
+.suggest .sg:hover,.suggest .sg:active{background:#F0FBFA}
 </style>
 </head>
 <body>
@@ -128,7 +132,7 @@ table{font-size:14px}th{font-size:12.5px}
   <div class="clockbar"><div class="credit"><b>Developed by: Kannikar Thaicharoen</b><span>Operating Discipline (OD) and Training Coordinator</span></div><div class="gp-clock"><span class="g">—</span><span class="d">—</span></div><div></div></div>
   <div class="home-logo">
     <img src="https://raw.githubusercontent.com/NatureWorks-NBCSITE/nw-ctms/main/logo.png" alt="NatureWorks">
-    <span class="vbadge" id="ver-badge">v1.10</span>
+    <span class="vbadge" id="ver-badge">v1.11</span>
   </div>
   <div class="home-title">Gate Pass Control</div>
   <div class="home-sub">ระบบควบคุมการผ่านเข้า–ออก ป้อมรักษาความปลอดภัย · NBC Plant</div>
@@ -170,11 +174,8 @@ table{font-size:14px}th{font-size:12.5px}
           </div>
           <div class="fg" id="fg-co"><label>บริษัท / Company <span class="req">*</span></label><input id="r-co"></div>
           <div class="fg" id="fg-dept" style="display:none"><label>แผนก / Department <span class="req">*</span></label><select id="r-dept"></select></div>
-          <div class="grid2">
-            <div class="fg"><label>เลขบัตรประชาชน / ID No. <span class="req">*</span></label><input id="r-idno" maxlength="13" inputmode="numeric"></div>
-            <div class="fg"><label>เบอร์โทร / Tel <span class="req">*</span></label><input id="r-tel" inputmode="tel"></div>
-          </div>
-          <div class="fg" id="fg-contact"><label>ชื่อพนักงาน NatureWorks ที่ต้องการติดต่อ / Person to Contact <span class="req">*</span></label><input id="r-contact" list="contacts-dl" oninput="contactPick()" onchange="contactPick()" placeholder="พิมพ์ชื่อ — ระบบจะแนะนำรายชื่อให้"><datalist id="contacts-dl"></datalist></div>
+          <div class="fg"><label>เบอร์โทร / Tel <span class="req">*</span></label><input id="r-tel" inputmode="tel"></div>
+          <div class="fg" id="fg-contact" style="position:relative"><label>ชื่อพนักงาน NatureWorks ที่ต้องการติดต่อ / Person to Contact <span class="req">*</span></label><input id="r-contact" autocomplete="off" oninput="contactSuggest()" onfocus="contactSuggest()" onblur="setTimeout(hideSuggest,250)" placeholder="แตะเพื่อดูรายชื่อ หรือพิมพ์ชื่อบางส่วน"><div id="contact-sg" class="suggest"></div></div>
           <div class="fg" id="fg-cdept"><label>แผนกของพนักงานที่ต้องการติดต่อ / Department <span class="req">*</span></label><select id="r-cdept"></select></div>
           <div class="fg" id="fg-purpose"><label>วัตถุประสงค์ / Purpose <span class="req">*</span></label><select id="r-purpose-sel" onchange="refreshOthers()"></select></div>
           <div class="fg" id="fg-purpose-other" style="display:none"><label>ระบุวัตถุประสงค์ / Please specify <span class="req">*</span></label><input id="r-purpose-other"></div>
@@ -354,7 +355,7 @@ table{font-size:14px}th{font-size:12.5px}
 const firebaseConfig={apiKey:"AIzaSyCKASP9RLRFgvdsM98cgbK3gJQiYQDqFC4",authDomain:"nw-contractor-training.firebaseapp.com",projectId:"nw-contractor-training",storageBucket:"nw-contractor-training.firebasestorage.app",messagingSenderId:"543139137624",appId:"1:543139137624:web:04b331bd7187046352222d"};
 firebase.initializeApp(firebaseConfig);const db=firebase.firestore();
 const CLD_CLOUD="zjtygb1h",CLD_PRESET="nw_ctms_unsigned";
-const APP_VER="v1.10";document.getElementById("ver-badge").textContent=APP_VER;
+const APP_VER="v1.11";document.getElementById("ver-badge").textContent=APP_VER;
 const POS_LABEL={GEN:"พนักงานทั่วไป / General",SAF:"จป.หัวหน้างาน / Safety Sup.",FWM:"Fire Watchman",DRV:"พนักงานขับรถขนส่ง / Transport Driver",SUP:"พนักงานสนับสนุน / Supporting Staff"};
 const GROUP_TH={contractor:"ผู้รับเหมา",visitor:"ผู้มาติดต่อ",delivery:"รถขนส่ง",tempemp:"พนักงาน(ชั่วคราว)"};
 const DEPTS=["Administration / ธุรการ","HR / ทรัพยากรบุคคล","EHS / ความปลอดภัยฯ","Production / ฝ่ายผลิต","Maintenance / ซ่อมบำรุง","Engineering / วิศวกรรม","QA-QC / Laboratory","Warehouse & Logistics / คลังสินค้า","Procurement / จัดซื้อ","IT / เทคโนโลยีสารสนเทศ","Finance & Accounting / บัญชีการเงิน"];
@@ -390,16 +391,26 @@ async function loadContacts(){
   try{const s=await db.collection("config").doc("gatepass").get();
     CONTACTS_RAW=(s.exists&&s.data().contacts)||"";
     CONTACTS=CONTACTS_RAW.split("\n").map(l=>l.split(",")).filter(a=>a[0]&&a[0].trim()).map(a=>({n:a[0].trim(),d:(a[1]||"").trim()}));
-    const dl=document.getElementById("contacts-dl");if(dl)dl.innerHTML=CONTACTS.map(c=>`<option value="${esc(c.n)}">`).join("");
     const ta=document.getElementById("gp-contacts");if(ta)ta.value=CONTACTS_RAW;
   }catch(e){}
 }
-function contactPick(){
-  const v=(document.getElementById("r-contact").value||"").trim();
-  const m=CONTACTS.find(c=>c.n===v);if(!m||!m.d)return;
+function contactSuggest(){
+  const inp=document.getElementById("r-contact"),box=document.getElementById("contact-sg");
+  const v=(inp.value||"").trim().toLowerCase();
+  let list=v?CONTACTS.filter(c=>c.n.toLowerCase().includes(v)||(c.d||"").toLowerCase().includes(v)):CONTACTS;
+  list=list.slice(0,8);
+  if(!list.length){box.style.display="none";box.innerHTML="";return;}
+  box.innerHTML=list.map(c=>`<div class="sg" onmousedown="pickContact(${CONTACTS.indexOf(c)})" ontouchstart="pickContact(${CONTACTS.indexOf(c)})">${esc(c.n)}${c.d?`<small>${esc(c.d)}</small>`:""}</div>`).join("");
+  box.style.display="block";
+}
+function hideSuggest(){const b=document.getElementById("contact-sg");if(b)b.style.display="none";}
+function pickContact(i){
+  const c=CONTACTS[i];if(!c)return;
+  document.getElementById("r-contact").value=c.n;hideSuggest();
+  if(!c.d)return;
   const sel=document.getElementById("r-cdept");
-  for(const o of sel.options){if(o.text===m.d){sel.value=o.value||o.text;return;}}
-  const o=document.createElement("option");o.text=m.d;sel.add(o);sel.value=m.d;
+  for(const o of sel.options){if(o.text===c.d){sel.value=o.value||o.text;hideSuggest();return;}}
+  const o=document.createElement("option");o.text=c.d;sel.add(o);sel.value=c.d;
 }
 async function saveContacts(){
   try{await db.collection("config").doc("gatepass").set({contacts:document.getElementById("gp-contacts").value||""},{merge:true});
@@ -528,11 +539,11 @@ function setRegType(t){
 function gv(id){return (document.getElementById(id).value||"").trim();}
 async function submitReg(){
   if(!REG_TYPE){showToast("⚠ กรุณาเลือกประเภท");return;}
-  const fn=gv("r-fn"),ln=gv("r-ln"),idno=gv("r-idno"),tel=gv("r-tel"),plate=gv("r-plate");
+  const fn=gv("r-fn"),ln=gv("r-ln"),tel=gv("r-tel"),plate=gv("r-plate");
   const co=gv("r-co"),dept=gv("r-dept"),contact=gv("r-contact"),cdept=gv("r-cdept");
   const isDel=REG_TYPE==="delivery",isEmp=REG_TYPE==="tempemp";
   let purpose=gv("r-purpose-sel"),reason=gv("r-reason"),cargo=gv("r-cargo");
-  if(!fn||!ln||!idno||!tel){showToast("⚠ กรอกชื่อ นามสกุล เลขบัตร และเบอร์โทรให้ครบ");return;}
+  if(!fn||!ln||!tel){showToast("⚠ กรอกชื่อ นามสกุล และเบอร์โทรให้ครบ");return;}
   if(!isEmp){
     if(!co||!contact){showToast("⚠ กรอกบริษัทและผู้ที่มาพบ");return;}
     if(!cdept){showToast("⚠ เลือกแผนกของพนักงานที่ต้องการติดต่อ");return;}
@@ -555,7 +566,7 @@ async function submitReg(){
     const photo=await uploadPhoto(PHOTO_BLOB);
     const id="GV-"+Date.now();
     await db.collection("gate_visitors").doc(id).set({
-      id,vpType:REG_TYPE,fn,ln,co:isEmp?"NatureWorks":co,dept:dept||null,idno,tel,
+      id,vpType:REG_TYPE,fn,ln,co:isEmp?"NatureWorks":co,dept:dept||null,idno:null,tel,
       contact:contact||null,contactDept:isEmp?null:(cdept||null),purpose:isEmp?null:(purpose||null),reason:isEmp?(reason||null):null,
       plate:plate||null,cargoType:isDel?(cargo||null):null,photo,
       status:"pending",vpNo:null,rfid:null,vehiclePassNo:null,
@@ -737,7 +748,7 @@ function reviewGV(id){
   <div class="person" style="margin-bottom:12px">
     ${v.photo?`<img class="pphoto" src="${esc(v.photo)}">`:""}
     <div><div class="pname" style="font-size:16px">${esc(v.fn)} ${esc(v.ln)}</div>
-    <div class="pmeta">${esc(v.co||"")} · เลขบัตร ปชช.: <b>${esc(v.idno||"")}</b><br>
+    <div class="pmeta">${esc(v.co||"")} · โทร: <b>${esc(v.tel||"")}</b><br>
     <span class="badge ${GROUP_BADGE[v.vpType]}">${GROUP_TH[v.vpType]}</span> ${v.plate?"· รถ "+esc(v.plate):""}</div></div>
   </div>
   <div class="alert al-amber"><i class="ti ti-id"></i><span>ตรวจบัตรประชาชนตัวจริงให้ตรงกับข้อมูลก่อนออกบัตร</span></div>
@@ -757,8 +768,10 @@ async function approveGV(id){
   const vpassno=(document.getElementById("m-vpassno").value||"").trim()||null;
   const btn=document.getElementById("m-approve");btn.disabled=true;btn.innerHTML='<span class="spin"></span> กำลังออกบัตร...';
   try{
-    const bl=await db.collection("blacklist").where("idno","==",v.idno).where("active","==",true).get();
-    if(!bl.empty){closeModal();showToast("⛔ BLACKLIST — ออกบัตรไม่ได้: "+(bl.docs[0].data().reason||""));return;}
+    if(v.idno){
+      const bl=await db.collection("blacklist").where("idno","==",v.idno).where("active","==",true).get();
+      if(!bl.empty){closeModal();showToast("⛔ BLACKLIST — ออกบัตรไม่ได้: "+(bl.docs[0].data().reason||""));return;}
+    }
     const vpNo=v.vpNo||await genVP();
     await db.collection("gate_visitors").doc(id).update({status:"approved",vpNo,rfid,vehiclePassNo:vpassno,approvedBy:SESSION.email,approvedDate:today()});
     const v2={...v,vpNo,rfid,vehiclePassNo:vpassno};
