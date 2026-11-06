@@ -133,7 +133,7 @@ select.autofilled{border-color:var(--green)!important;background:#F2FBF3!importa
   <div class="clockbar"><div class="credit"><b>Developed by: Kannikar Thaicharoen</b><span>Operating Discipline (OD) and Training Coordinator</span></div><div class="gp-clock"><span class="g">—</span><span class="d">—</span></div><div></div></div>
   <div class="home-logo">
     <img src="https://raw.githubusercontent.com/NatureWorks-NBCSITE/nw-ctms/main/logo.png" alt="NatureWorks">
-    <span class="vbadge" id="ver-badge">v1.13</span>
+    <span class="vbadge" id="ver-badge">v1.14</span>
   </div>
   <div class="home-title">Gate Pass Control</div>
   <div class="home-sub">ระบบควบคุมการผ่านเข้า–ออก ป้อมรักษาความปลอดภัย · NBC Plant</div>
@@ -176,8 +176,8 @@ select.autofilled{border-color:var(--green)!important;background:#F2FBF3!importa
           <div class="fg" id="fg-co"><label>บริษัท / Company <span class="req">*</span></label><input id="r-co"></div>
           <div class="fg" id="fg-dept" style="display:none"><label>แผนก / Department <span class="req">*</span></label><select id="r-dept"></select></div>
           <div class="fg"><label>เบอร์โทร / Tel <span class="req">*</span></label><input id="r-tel" inputmode="tel"></div>
-          <div class="fg" id="fg-contact" style="position:relative"><label>ชื่อพนักงาน NatureWorks ที่ต้องการติดต่อ / Person to Contact <span class="req">*</span></label><input id="r-contact" autocomplete="off" oninput="contactSuggest()" onfocus="contactSuggest()" onblur="setTimeout(hideSuggest,250)" placeholder="แตะเพื่อดูรายชื่อ หรือพิมพ์ชื่อบางส่วน"><div id="contact-sg" class="suggest"></div></div>
-          <div class="fg" id="fg-cdept"><label>แผนกของพนักงานที่ต้องการติดต่อ / Department <span class="req">*</span></label><select id="r-cdept"></select></div>
+          <div class="fg" id="fg-cdept"><label>แผนกที่ต้องการติดต่อ / Department to Contact <span class="req">*</span></label><select id="r-cdept" onchange="deptChanged()"></select></div>
+          <div class="fg" id="fg-contact" style="position:relative"><label>ชื่อพนักงาน NatureWorks ที่ต้องการติดต่อ / Person to Contact <span class="req">*</span></label><input id="r-contact" autocomplete="off" oninput="contactSuggest()" onfocus="contactSuggest()" onblur="setTimeout(hideSuggest,250)" placeholder="แตะเพื่อดูรายชื่อในแผนก หรือพิมพ์ค้นหา"><div id="contact-sg" class="suggest"></div></div>
           <div class="fg" id="fg-purpose"><label>วัตถุประสงค์ / Purpose <span class="req">*</span></label><select id="r-purpose-sel" onchange="refreshOthers()"></select></div>
           <div class="fg" id="fg-purpose-other" style="display:none"><label>ระบุวัตถุประสงค์ / Please specify <span class="req">*</span></label><input id="r-purpose-other"></div>
           <div class="fg" id="fg-reason" style="display:none"><label>เหตุผลที่ขอบัตรชั่วคราว / Reason for Temporary Pass <span class="req">*</span></label><select id="r-reason" onchange="refreshOthers()"></select></div>
@@ -356,7 +356,7 @@ select.autofilled{border-color:var(--green)!important;background:#F2FBF3!importa
 const firebaseConfig={apiKey:"AIzaSyCKASP9RLRFgvdsM98cgbK3gJQiYQDqFC4",authDomain:"nw-contractor-training.firebaseapp.com",projectId:"nw-contractor-training",storageBucket:"nw-contractor-training.firebasestorage.app",messagingSenderId:"543139137624",appId:"1:543139137624:web:04b331bd7187046352222d"};
 firebase.initializeApp(firebaseConfig);const db=firebase.firestore();
 const CLD_CLOUD="zjtygb1h",CLD_PRESET="nw_ctms_unsigned";
-const APP_VER="v1.13";document.getElementById("ver-badge").textContent=APP_VER;
+const APP_VER="v1.14";document.getElementById("ver-badge").textContent=APP_VER;
 const POS_LABEL={GEN:"พนักงานทั่วไป / General",SAF:"จป.หัวหน้างาน / Safety Sup.",FWM:"Fire Watchman",DRV:"พนักงานขับรถขนส่ง / Transport Driver",SUP:"พนักงานสนับสนุน / Supporting Staff"};
 const GROUP_TH={contractor:"ผู้รับเหมา",visitor:"ผู้มาติดต่อ",delivery:"รถขนส่ง",tempemp:"พนักงาน(ชั่วคราว)"};
 const DEPTS=["Administration","Safety","Environment","Engineering","Fermentation Lab","Finance","HR","IT","Maintenance & Reliability","Production","QA/QC","Supply Chain","Warehouse","Procurement"];
@@ -395,12 +395,31 @@ async function loadContacts(){
     const ta=document.getElementById("gp-contacts");if(ta)ta.value=CONTACTS_RAW;
   }catch(e){}
 }
+function selDeptText(){
+  const sel=document.getElementById("r-cdept");
+  const t=((sel.selectedOptions[0]||{}).text||"").trim();
+  return (!t||t.includes("เลือก")||t==="ไม่ทราบ")?"":t;
+}
+function inSelDept(c){
+  const t=selDeptText().toLowerCase();if(!t)return true;
+  const d=(c.d||"").toLowerCase().trim();if(!d)return false;
+  return d===t||d.includes(t)||t.includes(d);
+}
+function deptChanged(){
+  const inp=document.getElementById("r-contact");
+  if(document.activeElement===inp)contactSuggest();else hideSuggest();
+}
 function contactSuggest(){
   const inp=document.getElementById("r-contact"),box=document.getElementById("contact-sg");
   const v=(inp.value||"").trim().toLowerCase();
-  let list=v?CONTACTS.filter(c=>c.n.toLowerCase().includes(v)||(c.d||"").toLowerCase().includes(v)):CONTACTS;
+  let list=CONTACTS.filter(inSelDept);
+  if(v)list=list.filter(c=>c.n.toLowerCase().includes(v)||(c.d||"").toLowerCase().includes(v));
   list=list.slice(0,8);
-  if(!list.length){box.style.display="none";box.innerHTML="";return;}
+  if(!CONTACTS.length){box.style.display="none";box.innerHTML="";return;}
+  if(!list.length){
+    box.innerHTML=`<div class="sg" style="cursor:default;color:var(--grey);font-weight:500">— ${selDeptText()?"ไม่พบรายชื่อ"+(v?"ที่ค้นหา":"")+"ในแผนก "+esc(selDeptText()):"ไม่พบรายชื่อที่ค้นหา"} — พิมพ์ชื่อเองได้เลย —</div>`;
+    box.style.display="block";return;
+  }
   box.innerHTML=list.map(c=>`<div class="sg" onmousedown="pickContact(${CONTACTS.indexOf(c)})" ontouchstart="pickContact(${CONTACTS.indexOf(c)})">${esc(c.n)}${c.d?`<small>${esc(c.d)}</small>`:""}</div>`).join("");
   box.style.display="block";
 }
