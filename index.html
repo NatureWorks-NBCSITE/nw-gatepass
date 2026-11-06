@@ -123,6 +123,7 @@ table{font-size:14px}th{font-size:12.5px}
 .suggest .sg{padding:10px 12px;cursor:pointer;border-bottom:1px solid #EFF5FA;font-size:14.5px;font-weight:600;color:var(--navy-d)}
 .suggest .sg small{display:block;color:var(--grey);font-weight:500;font-size:11.5px}
 .suggest .sg:hover,.suggest .sg:active{background:#F0FBFA}
+select.autofilled{border-color:var(--green)!important;background:#F2FBF3!important;box-shadow:0 0 0 3px rgba(46,125,50,.18);transition:all .3s}
 </style>
 </head>
 <body>
@@ -132,7 +133,7 @@ table{font-size:14px}th{font-size:12.5px}
   <div class="clockbar"><div class="credit"><b>Developed by: Kannikar Thaicharoen</b><span>Operating Discipline (OD) and Training Coordinator</span></div><div class="gp-clock"><span class="g">—</span><span class="d">—</span></div><div></div></div>
   <div class="home-logo">
     <img src="https://raw.githubusercontent.com/NatureWorks-NBCSITE/nw-ctms/main/logo.png" alt="NatureWorks">
-    <span class="vbadge" id="ver-badge">v1.11</span>
+    <span class="vbadge" id="ver-badge">v1.13</span>
   </div>
   <div class="home-title">Gate Pass Control</div>
   <div class="home-sub">ระบบควบคุมการผ่านเข้า–ออก ป้อมรักษาความปลอดภัย · NBC Plant</div>
@@ -355,10 +356,10 @@ table{font-size:14px}th{font-size:12.5px}
 const firebaseConfig={apiKey:"AIzaSyCKASP9RLRFgvdsM98cgbK3gJQiYQDqFC4",authDomain:"nw-contractor-training.firebaseapp.com",projectId:"nw-contractor-training",storageBucket:"nw-contractor-training.firebasestorage.app",messagingSenderId:"543139137624",appId:"1:543139137624:web:04b331bd7187046352222d"};
 firebase.initializeApp(firebaseConfig);const db=firebase.firestore();
 const CLD_CLOUD="zjtygb1h",CLD_PRESET="nw_ctms_unsigned";
-const APP_VER="v1.11";document.getElementById("ver-badge").textContent=APP_VER;
+const APP_VER="v1.13";document.getElementById("ver-badge").textContent=APP_VER;
 const POS_LABEL={GEN:"พนักงานทั่วไป / General",SAF:"จป.หัวหน้างาน / Safety Sup.",FWM:"Fire Watchman",DRV:"พนักงานขับรถขนส่ง / Transport Driver",SUP:"พนักงานสนับสนุน / Supporting Staff"};
 const GROUP_TH={contractor:"ผู้รับเหมา",visitor:"ผู้มาติดต่อ",delivery:"รถขนส่ง",tempemp:"พนักงาน(ชั่วคราว)"};
-const DEPTS=["Administration / ธุรการ","HR / ทรัพยากรบุคคล","EHS / ความปลอดภัยฯ","Production / ฝ่ายผลิต","Maintenance / ซ่อมบำรุง","Engineering / วิศวกรรม","QA-QC / Laboratory","Warehouse & Logistics / คลังสินค้า","Procurement / จัดซื้อ","IT / เทคโนโลยีสารสนเทศ","Finance & Accounting / บัญชีการเงิน"];
+const DEPTS=["Administration","Safety","Environment","Engineering","Fermentation Lab","Finance","HR","IT","Maintenance & Reliability","Production","QA/QC","Supply Chain","Warehouse","Procurement"];
 const PURPOSES=["ประชุม / ติดต่อธุรกิจ","เข้าปฏิบัติงาน / ให้บริการ","ส่ง-รับเอกสาร","ส่งสินค้า / รับสินค้า","ตรวจสอบ / Audit","สัมภาษณ์งาน","เยี่ยมชมโรงงาน","อื่นๆ (โปรดระบุ)"];
 const CARGOS=["สารเคมี / Chemicals","บรรจุภัณฑ์ / Packaging","อุปกรณ์ / เครื่องมือ","พัสดุไปรษณีย์","อาหาร / เครื่องดื่ม","อุปกรณ์ PPE","ของใช้สำนักงาน","อื่นๆ (โปรดระบุ)"];
 const REASONS=["พนักงานใหม่ยังไม่มีบัตรพนักงาน","บัตรพนักงานชำรุด / สูญหาย","ลืมนำบัตรพนักงานมา","อื่นๆ (โปรดระบุ)"];
@@ -409,8 +410,15 @@ function pickContact(i){
   document.getElementById("r-contact").value=c.n;hideSuggest();
   if(!c.d)return;
   const sel=document.getElementById("r-cdept");
-  for(const o of sel.options){if(o.text===c.d){sel.value=o.value||o.text;hideSuggest();return;}}
-  const o=document.createElement("option");o.text=c.d;sel.add(o);sel.value=c.d;
+  const dl=c.d.toLowerCase().trim();let hit=null;
+  for(const o of sel.options){
+    const t=(o.text||"").toLowerCase().trim();
+    if(!t||t.includes("เลือก"))continue;
+    if(t===dl||t.includes(dl)||dl.includes(t)){hit=o;break;}
+  }
+  if(hit){sel.value=hit.value||hit.text;}
+  else{const o=document.createElement("option");o.text=c.d;sel.add(o);sel.value=c.d;}
+  sel.classList.add("autofilled");setTimeout(()=>sel.classList.remove("autofilled"),1600);
 }
 async function saveContacts(){
   try{await db.collection("config").doc("gatepass").set({contacts:document.getElementById("gp-contacts").value||""},{merge:true});
